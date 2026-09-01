@@ -8,25 +8,37 @@ from generation.note_generator import generate_notes
 from config import DEFAULT_K, UPLOAD_DIR
 
 
-def _validate_upload_path(path: str) -> None:
-    """
-    Stops an attacker-controlled file_path from reading arbitrary files off
-    disk (e.g. "../../etc/passwd") by requiring uploads to live in UPLOAD_DIR.
-    """
+def _validate_upload_path(path: str) -> str:
     upload_root = os.path.abspath(UPLOAD_DIR)
-    target = os.path.abspath(path)
+    target = os.path.abspath(
+        os.path.join(upload_root, os.path.basename(path))
+    )
+
     if os.path.commonpath([upload_root, target]) != upload_root:
-        raise ValueError("file source must be located inside the uploads directory.")
+        raise ValueError(
+            "file source must be located inside the uploads directory."
+        )
+
     if not os.path.isfile(target):
-        raise ValueError(f"File not found: {path}")
+        raise ValueError(f"File not found: {target}")
+
+    return target
 
 
 def index_document(source: str, document_id: str, source_type: str = "file"):
     if source_type == "file":
-        _validate_upload_path(source)
+        source = _validate_upload_path(source)
 
-    chunks = process_document(source=source, document_id=document_id, source_type=source_type)
-    create_vector_store(chunks=chunks, document_id=document_id)
+    chunks = process_document(
+        source=source,
+        document_id=document_id,
+        source_type=source_type,
+    )
+
+    create_vector_store(
+        chunks=chunks,
+        document_id=document_id,
+    )
 
     return {
         "document_id": document_id,

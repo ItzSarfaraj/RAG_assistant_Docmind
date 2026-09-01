@@ -26,6 +26,7 @@ function NotesPage() {
   const [lineSpacing, setLineSpacing] = useState("normal");
   const [noteWidth, setNoteWidth] = useState("wide");
   const [paperStyle, setPaperStyle] = useState("paper");
+  const [noteStyle, setNoteStyle] = useState("classic"); // NEW: "classic" | "sketch"
 
   const [include, setInclude] = useState({
     summary: true,
@@ -203,7 +204,15 @@ function NotesPage() {
           </div>
         )}
 
-        <NotesContent note={note} font={font} fontSize={fontSize} lineSpacing={lineSpacing} noteWidth={noteWidth} paperStyle={paperStyle} />
+        <NotesContent
+          note={note}
+          font={font}
+          fontSize={fontSize}
+          lineSpacing={lineSpacing}
+          noteWidth={noteWidth}
+          paperStyle={paperStyle}
+          noteStyle={noteStyle}
+        />
       </section>
 
       <FormattingSidebar
@@ -219,6 +228,8 @@ function NotesPage() {
         setNoteWidth={setNoteWidth}
         paperStyle={paperStyle}
         setPaperStyle={setPaperStyle}
+        noteStyle={noteStyle}
+        setNoteStyle={setNoteStyle}
         handleSavePDF={handleSavePDF}
       />
 

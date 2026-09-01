@@ -1,10 +1,18 @@
 import { useState } from "react";
+import {
+  FileText,
+  Link,
+  Maximize2,
+  Minimize2,
+  Video,
+  X,
+} from "lucide-react";
+
 import PdfPreview from "./PdfPreview";
 import WebPreview from "./WebPreview";
 import VideoPreview from "./VideoPreview";
 
-
-function DocumentPreview({ document, onClose,seekTime }) {
+function DocumentPreview({ document, onClose, seekTime }) {
   const NORMAL_WIDTH = 380;
   const EXPANDED_WIDTH = 650;
   const MIN_WIDTH = 320;
@@ -18,6 +26,8 @@ function DocumentPreview({ document, onClose,seekTime }) {
   const isPdf = document?.contentType === "pdf";
   const isWeb = document?.sourceType === "web";
   const isVideo = document?.sourceType === "video";
+
+  const PreviewIcon = isVideo ? Video : isWeb ? Link : FileText;
 
   const handlePointerDown = (event) => {
     event.preventDefault();
@@ -55,7 +65,6 @@ function DocumentPreview({ document, onClose,seekTime }) {
       );
 
       upEvent.currentTarget.removeEventListener("pointerup", handlePointerUp);
-
       upEvent.currentTarget.removeEventListener(
         "pointercancel",
         handlePointerUp,
@@ -67,37 +76,26 @@ function DocumentPreview({ document, onClose,seekTime }) {
     event.currentTarget.addEventListener("pointercancel", handlePointerUp);
   };
 
-  const handleDoubleClick = () => {
-    setWidth((previousWidth) =>
-      previousWidth >= EXPANDED_WIDTH ? NORMAL_WIDTH : EXPANDED_WIDTH,
-    );
-  };
-
   const handleToggleExpand = () => {
     setWidth((previousWidth) =>
       previousWidth >= EXPANDED_WIDTH ? NORMAL_WIDTH : EXPANDED_WIDTH,
     );
   };
 
-  if (!document) {
-    return null;
-  }
+  if (!document) return null;
 
   return (
     <aside
-      style={{
-        width: `${width}px`,
-      }}
+      style={{ width: `${width}px` }}
       className={`relative hidden shrink-0 flex-col border-l border-[#E6E1D3] bg-white xl:flex ${
         isResizing ? "select-none" : ""
       }`}
     >
-      {/* Resize handle */}
       <div
         onPointerDown={handlePointerDown}
-        onDoubleClick={handleDoubleClick}
+        onDoubleClick={handleToggleExpand}
         className={`group absolute left-0 top-0 z-50 h-full w-2 -translate-x-1/2 cursor-col-resize touch-none ${
-          isResizing ? "bg-[#BD7B24]" : ""
+          isResizing ? "bg-[#BD7B24]/20" : ""
         }`}
         title="Drag to resize · Double-click to expand"
       >
@@ -110,71 +108,37 @@ function DocumentPreview({ document, onClose,seekTime }) {
         />
       </div>
 
-      {/* Header */}
-      <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-[#E6E1D3] px-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F3EFE4] text-sm">
-            {isWeb ? "🔗" : isVideo ? "🎥" : "📄"}
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate text-xs font-semibold text-[#22201A]">
-              {document.name}
-            </p>
-
-            <p className="mt-0.5 text-[10px] text-[#8A8473]">
-              {document.contentType?.toUpperCase() || "FILE"}
-              {" · "}
-              {document.status || "Indexed"}
-            </p>
-          </div>
+      <header className="flex h-[62px] shrink-0 items-center gap-3 border-b border-[#E6E1D3] px-4">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F3EFE4] text-[#BD7B24]">
+          <PreviewIcon size={16} strokeWidth={1.8} />
         </div>
 
-        {/* Header actions */}
-        <div className="ml-3 flex shrink-0 items-center gap-1">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold text-[#22201A]">
+            {document.name}
+          </p>
+
+          <p className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.08em] text-[#8A8473]">
+            {isVideo
+              ? "YouTube video"
+              : isWeb
+                ? "Webpage"
+                : document.contentType || "File"}
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={handleToggleExpand}
             className="flex h-7 w-7 items-center justify-center rounded-md text-[#8A8473] transition hover:bg-[#F7F4EC] hover:text-[#22201A]"
-            aria-label={
-              isExpanded
-                ? "Collapse document preview"
-                : "Expand document preview"
-            }
+            aria-label={isExpanded ? "Collapse preview" : "Expand preview"}
             title={isExpanded ? "Collapse preview" : "Expand preview"}
           >
             {isExpanded ? (
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M8 3v5H3" />
-                <path d="M3 8l5-5" />
-                <path d="M16 21v-5h5" />
-                <path d="M21 16l-5 5" />
-              </svg>
+              <Minimize2 size={14} strokeWidth={1.8} />
             ) : (
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M3 8V3h5" />
-                <path d="M3 3l5 5" />
-                <path d="M21 16v5h-5" />
-                <path d="M21 21l-5-5" />
-              </svg>
+              <Maximize2 size={14} strokeWidth={1.8} />
             )}
           </button>
 
@@ -183,15 +147,14 @@ function DocumentPreview({ document, onClose,seekTime }) {
             onClick={onClose}
             className="flex h-7 w-7 items-center justify-center rounded-md text-[#8A8473] transition hover:bg-[#F7F4EC] hover:text-[#22201A]"
             aria-label="Close document preview"
-            title="Close document preview"
+            title="Close preview"
           >
-            ×
+            <X size={14} strokeWidth={1.8} />
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* Preview */}
-      <div className="min-h-0 flex-1 overflow-hidden bg-[#F0EDE4]]">
+      <div className="min-h-0 flex-1 overflow-hidden bg-[#F0EDE4]">
         {isPdf ? (
           <PdfPreview document={document} />
         ) : isWeb ? (
@@ -201,8 +164,8 @@ function DocumentPreview({ document, onClose,seekTime }) {
         ) : (
           <div className="flex h-full items-center justify-center px-8 text-center">
             <div>
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-                📄
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-[#A09A8B] shadow-sm">
+                <FileText size={20} />
               </div>
 
               <h3 className="mt-4 text-sm font-semibold text-[#22201A]">
@@ -217,19 +180,16 @@ function DocumentPreview({ document, onClose,seekTime }) {
         )}
       </div>
 
-      {/* Footer */}
-      <div className="shrink-0 border-t border-[#E6E1D3] bg-white px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-[#8A8473]">
-            {isExpanded ? "Expanded Preview" : "Document Preview"}
-          </span>
+      <footer className="flex shrink-0 items-center justify-between border-t border-[#E6E1D3] bg-white px-4 py-3">
+        <span className="text-[10px] text-[#8A8473]">
+          {isExpanded ? "Expanded preview" : "Document preview"}
+        </span>
 
-          <span className="flex items-center gap-1.5 text-[10px] text-[#5F7658]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#6F8B68]" />
-            {document.status || "Indexed"}
-          </span>
-        </div>
-      </div>
+        <span className="flex items-center gap-1.5 text-[10px] font-medium text-[#607653]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#6F8B68]" />
+          {document.status || "Indexed"}
+        </span>
+      </footer>
     </aside>
   );
 }

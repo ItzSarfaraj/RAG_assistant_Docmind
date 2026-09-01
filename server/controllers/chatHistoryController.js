@@ -1,10 +1,6 @@
 import Chat from "../models/Chat.js";
 import Document from "../models/Document.js";
 
-// ==========================================
-// GET CHAT HISTORY
-// ==========================================
-
 const getChatHistory = async (req, res) => {
   try {
     const { documentId } = req.params;
@@ -15,7 +11,6 @@ const getChatHistory = async (req, res) => {
       });
     }
 
-    // Make sure document belongs to logged-in user
     const document = await Document.findOne({
       _id: documentId,
       user: req.user.id,
@@ -32,32 +27,26 @@ const getChatHistory = async (req, res) => {
       document: documentId,
     });
 
-    if (!chat) {
-      return res.status(200).json({
-        messages: [],
-      });
-    }
-
     return res.status(200).json({
-      messages: chat.messages,
+      messages: chat?.messages || [],
     });
   } catch (error) {
-    console.error("Get chat history error:", error.message);
+    console.error("Get chat history error:", error);
 
     return res.status(500).json({
       message: "Failed to fetch chat history",
-      error: error.message,
     });
   }
 };
 
-// ==========================================
-// SAVE CHAT MESSAGE
-// ==========================================
-
 const saveChatMessage = async (req, res) => {
   try {
-    const { documentId, role, content, sources = [] } = req.body;
+    const {
+      documentId,
+      role,
+      content,
+      sources = [],
+    } = req.body;
 
     if (!documentId) {
       return res.status(400).json({
@@ -77,7 +66,6 @@ const saveChatMessage = async (req, res) => {
       });
     }
 
-    // Make sure document belongs to user
     const document = await Document.findOne({
       _id: documentId,
       user: req.user.id,
@@ -94,7 +82,6 @@ const saveChatMessage = async (req, res) => {
       document: documentId,
     });
 
-    // Create chat if it doesn't exist
     if (!chat) {
       chat = await Chat.create({
         user: req.user.id,
@@ -117,13 +104,15 @@ const saveChatMessage = async (req, res) => {
       message: savedMessage,
     });
   } catch (error) {
-    console.error("Save chat message error:", error.message);
+    console.error("Save chat message error:", error);
 
     return res.status(500).json({
       message: "Failed to save chat message",
-      error: error.message,
     });
   }
 };
 
-export { getChatHistory, saveChatMessage };
+export {
+  getChatHistory,
+  saveChatMessage,
+};

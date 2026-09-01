@@ -20,6 +20,8 @@ const indexDocument = async ({
       source_type: sourceType,
     });
 
+    console.log("RAG response:", response.data);
+
     return response.data;
   } catch (error) {
     console.error(
@@ -31,7 +33,11 @@ const indexDocument = async ({
   }
 };
 
-const askQuestion = async ({ question, documentId, k = 4 }) => {
+const askQuestion = async ({
+  question,
+  documentId,
+  k = 4,
+}) => {
   const response = await ragClient.post("/chat/answer", {
     question,
     document_id: documentId,
@@ -61,6 +67,7 @@ const streamQuestion = async ({
   );
 
   const stream = response.data;
+
   let buffer = "";
 
   stream.on("data", (chunk) => {
@@ -91,8 +98,46 @@ const streamQuestion = async ({
   });
 };
 
+const generateNotes = async ({
+  documentId,
+  detailLevel = "detailed",
+  explanationLevel = "intermediate",
+  noteStructure = "structured",
+  include = {},
+  faithfulToVideo = true,
+}) => {
+  try {
+    const response = await ragClient.post(
+      "/notes/generate",
+      {
+        document_id: documentId,
+        detail_level: detailLevel,
+        explanation_level: explanationLevel,
+        note_structure: noteStructure,
+        include,
+        faithful_to_video: faithfulToVideo,
+      },
+      {
+        timeout: 600000,
+      },
+    );
+
+    console.log("RAG notes response received");
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "RAG note generation error:",
+      error.response?.data || error.message,
+    );
+
+    throw error;
+  }
+};
+
 export {
   indexDocument,
   askQuestion,
   streamQuestion,
+  generateNotes,
 };

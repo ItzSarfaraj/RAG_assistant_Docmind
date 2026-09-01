@@ -1,5 +1,8 @@
 import os
 import logging
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -15,8 +18,15 @@ if not GOOGLE_API_KEY:
         "Set it in your .env file before starting the service."
     )
 
-VECTOR_STORE_DIR = os.getenv("VECTOR_STORE_DIR", "vectorstores")
-UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+VECTOR_STORE_DIR = os.getenv(
+    "VECTOR_STORE_DIR",
+    str(BASE_DIR / "vectorstores"),
+)
+
+UPLOAD_DIR = os.getenv(
+    "UPLOAD_DIR",
+    str(BASE_DIR.parent / "server" / "uploads"),
+)
 
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "gemini-embedding-001")
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.5-flash")

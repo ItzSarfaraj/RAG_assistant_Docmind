@@ -47,15 +47,15 @@ const uploadDocument = async (req, res) => {
     // ==========================================
 
     try {
-      const absoluteFilePath = path.resolve(req.file.path);
+      const fileName = path.basename(req.file.path);
 
-      console.log("File path sent to RAG:", absoluteFilePath);
+      console.log("File sent to RAG:", fileName);
 
       const ragResult = await indexDocument({
-  source: absoluteFilePath,
-  documentId: document._id.toString(),
-  sourceType: "file",
-});
+        source: fileName,
+        documentId: document._id.toString(),
+        sourceType: "file",
+      });
 
       // ==========================================
       // RAG indexing successful

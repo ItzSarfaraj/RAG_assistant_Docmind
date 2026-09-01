@@ -13,6 +13,8 @@ function FormattingSidebar({
   setNoteWidth,
   paperStyle,
   setPaperStyle,
+  noteStyle, // NEW: "classic" | "sketch"
+  setNoteStyle, // NEW
   handleSavePDF,
 }) {
   const fonts = [
@@ -47,6 +49,12 @@ function FormattingSidebar({
     ["blue", "Cool Blue"],
     ["green", "Soft Green"],
     ["lavender", "Lavender"],
+  ];
+
+  // NEW: the two page templates
+  const noteStyles = [
+    ["classic", "Classic"],
+    ["sketch", "Sketch Notebook"],
   ];
 
   const buttonClass = (active) =>
@@ -91,7 +99,37 @@ function FormattingSidebar({
           </div>
 
           <div className="flex-1 space-y-5 overflow-y-auto p-4">
+            {/* NEW: Note Style, placed first since it can override the
+                look of everything below it (e.g. sketch style implies
+                its own font/paper) */}
             <div>
+              <p className="mb-2 text-[10px] font-semibold text-[#22201A]">
+                Note Style
+              </p>
+
+              <div className="grid grid-cols-2 gap-1.5">
+                {noteStyles.map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setNoteStyle(value)}
+                    className={buttonClass(noteStyle === value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {noteStyle === "sketch" && (
+                <p className="mt-2 text-[9px] leading-4 text-[#8A8473]">
+                  Sketch Notebook uses its own handwritten font and paper
+                  texture — the Font and Paper options below are ignored
+                  while it's selected.
+                </p>
+              )}
+            </div>
+
+            <div className={noteStyle === "sketch" ? "opacity-40" : ""}>
               <p className="mb-2 text-[10px] font-semibold text-[#22201A]">
                 Font
               </p>
@@ -101,8 +139,9 @@ function FormattingSidebar({
                   <button
                     key={value}
                     type="button"
+                    disabled={noteStyle === "sketch"}
                     onClick={() => setFont(value)}
-                    className={buttonClass(font === value)}
+                    className={`${buttonClass(font === value)} disabled:cursor-not-allowed`}
                   >
                     {label}
                   </button>
@@ -169,7 +208,7 @@ function FormattingSidebar({
               </div>
             </div>
 
-            <div>
+            <div className={noteStyle === "sketch" ? "opacity-40" : ""}>
               <p className="mb-2 text-[10px] font-semibold text-[#22201A]">
                 Paper
               </p>
@@ -179,8 +218,9 @@ function FormattingSidebar({
                   <button
                     key={value}
                     type="button"
+                    disabled={noteStyle === "sketch"}
                     onClick={() => setPaperStyle(value)}
-                    className={buttonClass(paperStyle === value)}
+                    className={`${buttonClass(paperStyle === value)} disabled:cursor-not-allowed`}
                   >
                     {label}
                   </button>
