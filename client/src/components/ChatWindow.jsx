@@ -7,23 +7,21 @@ import {
 import ChatMessage from "./ChatMessage";
 import { Mark, FileIcon, SendIcon, DotIcon } from "./Icons";
 
-function ChatWindow({ document }) {
+function ChatWindow({ document, onTimestampClick }) {
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Kept in sync with `messages` so handleRegenerate can read the latest
-  // list without needing `messages` in its dependency array (which would
-  // otherwise change identity on every streamed token).
   const messagesRef = useRef(messages);
+
+  const isVideo = document?.sourceType === "video";
+  const isWeb = document?.sourceType === "web";
+
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // ==========================================
-  // LOAD CHAT HISTORY WHEN DOCUMENT CHANGES
-  // ==========================================
-
+  // Load chat history
   useEffect(() => {
     const loadChatHistory = async () => {
       if (!document?._id) {
@@ -58,10 +56,7 @@ function ChatWindow({ document }) {
     loadChatHistory();
   }, [document?._id]);
 
-  // ==========================================
-  // SEND MESSAGE / STREAM ANSWER
-  // ==========================================
-
+  // Send message
   const sendMessage = useCallback(
     async ({ questionText, assistantId }) => {
       try {
@@ -76,11 +71,6 @@ function ChatWindow({ document }) {
         let answer = "";
         let sources = [];
 
-        // Buffer incoming tokens and flush to React state at most once per
-        // animation frame instead of once per token. Without this, a fast
-        // stream (especially one producing a markdown table) triggers a
-        // full ReactMarkdown re-parse dozens of times a second and locks
-        // up the tab.
         let pendingAnswer = null;
         let rafId = null;
 
@@ -122,7 +112,9 @@ function ChatWindow({ document }) {
 
             setMessages((previous) =>
               previous.map((message) =>
-                message.id === assistantId ? { ...message, sources } : message,
+                message.id === assistantId
+                  ? { ...message, sources }
+                  : message,
               ),
             );
           },
@@ -131,27 +123,24 @@ function ChatWindow({ document }) {
             if (rafId !== null) {
               cancelAnimationFrame(rafId);
             }
-            // Make sure any buffered tokens from the final frame actually land.
+
             flush();
+
             console.log("Answer streaming completed.");
           },
         });
 
         if (answer.trim()) {
-          const token = localStorage.getItem("token");
-
-          if (token) {
-            try {
-              await saveChatMessage({
-                documentId: document._id,
-                role: "assistant",
-                content: answer,
-                sources,
-                token,
-              });
-            } catch (error) {
-              console.error("Failed to save assistant message:", error);
-            }
+          try {
+            await saveChatMessage({
+              documentId: document._id,
+              role: "assistant",
+              content: answer,
+              sources,
+              token,
+            });
+          } catch (error) {
+            console.error("Failed to save assistant message:", error);
           }
         }
       } catch (error) {
@@ -174,10 +163,7 @@ function ChatWindow({ document }) {
     [document],
   );
 
-  // ==========================================
-  // SUBMIT QUESTION
-  // ==========================================
-
+  // Submit question
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -186,16 +172,6 @@ function ChatWindow({ document }) {
     }
 
     if (!document?._id) {
-      setMessages((previous) => [
-        ...previous,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content: "Please select a document first.",
-          sources: [],
-        },
-      ]);
-
       return;
     }
 
@@ -207,7 +183,11 @@ function ChatWindow({ document }) {
 
     setMessages((previous) => [
       ...previous,
-      { id: userId, role: "user", content: currentQuestion },
+      {
+        id: userId,
+        role: "user",
+        content: currentQuestion,
+      },
     ]);
 
     const token = localStorage.getItem("token");
@@ -227,16 +207,21 @@ function ChatWindow({ document }) {
 
     setMessages((previous) => [
       ...previous,
-      { id: assistantId, role: "assistant", content: "", sources: [] },
+      {
+        id: assistantId,
+        role: "assistant",
+        content: "",
+        sources: [],
+      },
     ]);
 
-    await sendMessage({ questionText: currentQuestion, assistantId });
+    await sendMessage({
+      questionText: currentQuestion,
+      assistantId,
+    });
   };
 
-  // ==========================================
-  // REGENERATE ANSWER
-  // ==========================================
-
+  // Regenerate answer
   const handleRegenerate = useCallback(
     async (assistantId) => {
       if (isLoading) {
@@ -244,6 +229,7 @@ function ChatWindow({ document }) {
       }
 
       const currentMessages = messagesRef.current;
+
       const assistantIndex = currentMessages.findIndex(
         (message) => message.id === assistantId,
       );
@@ -270,7 +256,12 @@ function ChatWindow({ document }) {
       setMessages((previous) =>
         previous.map((message) =>
           message.id === assistantId
-            ? { ...message, id: newAssistantId, content: "", sources: [] }
+            ? {
+                ...message,
+                id: newAssistantId,
+                content: "",
+                sources: [],
+              }
             : message,
         ),
       );
@@ -283,33 +274,66 @@ function ChatWindow({ document }) {
     [isLoading, sendMessage],
   );
 
+  // Suggestion
   const handleSuggestion = (text) => {
     if (isLoading) {
       return;
     }
+
     setQuestion(text);
   };
 
-  const suggestions = [
-    "Summarize this document",
-    "What are the main findings?",
-    "What are the key limitations?",
-  ];
+  // Suggestions
+  const suggestions = isVideo
+    ? [
+        "Summarize this video",
+        "What are the main topics?",
+        "What are the key points?",
+      ]
+    : isWeb
+      ? [
+          "Summarize this webpage",
+          "What are the main findings?",
+          "What are the key points?",
+        ]
+      : [
+          "Summarize this document",
+          "What are the main findings?",
+          "What are the key limitations?",
+        ];
+
+  const sourceLabel = isVideo
+    ? "YouTube Video"
+    : isWeb
+      ? "Webpage"
+      : "Document";
+
+  const composerPlaceholder = isVideo
+    ? "Ask anything about this video..."
+    : isWeb
+      ? "Ask anything about this webpage..."
+      : "Ask anything about this document...";
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#F7F4EC]">
-      {/* Document header */}
+
+      {/* Header */}
       <div className="flex shrink-0 items-center gap-3 border-b border-[#E6E1D3] bg-white px-5 py-3 sm:px-8">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F7F4EC] text-[#75705F]">
-          <FileIcon width={16} height={16} />
+          {isVideo ? "🎥" : isWeb ? "🔗" : <FileIcon width={16} height={16} />}
         </div>
 
         <div className="min-w-0">
           <p className="truncate text-[13px] font-semibold text-[#22201A]">
-            {document?.name || "Document"}
+            {document?.name || sourceLabel}
           </p>
+
           <p className="mt-0.5 text-[11px] text-[#75705F]/70">
-            {document?.contentType?.toUpperCase() || "FILE"}
+            {isVideo
+              ? "YOUTUBE VIDEO"
+              : isWeb
+                ? "WEBPAGE"
+                : document?.contentType?.toUpperCase() || "FILE"}
             {" · "}
             {document?.status || "Ready"}
           </p>
@@ -317,28 +341,40 @@ function ChatWindow({ document }) {
 
         <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#EAF0E5] px-2.5 py-1">
           <span className="h-1.5 w-1.5 rounded-full bg-[#55684A]" />
-          <span className="text-[11px] font-medium text-[#55684A]">Ready</span>
+
+          <span className="text-[11px] font-medium text-[#55684A]">
+            Ready
+          </span>
         </div>
       </div>
 
-      {/* Chat area */}
+      {/* Chat */}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-4xl px-4 sm:px-6">
+
+            {/* Empty state */}
             {messages.length === 0 && (
               <div className="px-2 pb-6 pt-10 text-center sm:pt-16">
+
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-[#E6E1D3] bg-white text-xl leading-none text-[#BD7B24] shadow-sm">
-                  <Mark />
+                  {isVideo ? "🎥" : isWeb ? "🔗" : <Mark />}
                 </div>
 
                 <h2 className="mt-5 font-[Fraunces] text-xl font-medium tracking-tight text-[#22201A] sm:text-2xl">
-                  Ask this document anything
+                  {isVideo
+                    ? "Ask this video anything"
+                    : isWeb
+                      ? "Ask this webpage anything"
+                      : "Ask this document anything"}
                 </h2>
 
                 <p className="mx-auto mt-2 max-w-md text-[13px] leading-6 text-[#75705F]">
-                  Summaries, definitions, specific figures, or a deep dive on
-                  one section — DocMind answers from the text and shows its
-                  source.
+                  {isVideo
+                    ? "Ask questions, find important moments, or get a summary of this video — DocMind answers from its transcript."
+                    : isWeb
+                      ? "Ask questions about this webpage and DocMind will answer using the retrieved page content."
+                      : "Summaries, definitions, specific figures, or a deep dive on one section — DocMind answers from the text and shows its source."}
                 </p>
 
                 <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -357,6 +393,7 @@ function ChatWindow({ document }) {
               </div>
             )}
 
+            {/* Messages */}
             <div className="py-2">
               {messages.map((message) => (
                 <ChatMessage
@@ -367,6 +404,7 @@ function ChatWindow({ document }) {
                     message.id === messages[messages.length - 1]?.id
                   }
                   onRegenerate={handleRegenerate}
+                  onTimestampClick={onTimestampClick}
                 />
               ))}
             </div>
@@ -383,7 +421,7 @@ function ChatWindow({ document }) {
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask anything about this document..."
+              placeholder={composerPlaceholder}
               disabled={isLoading}
               className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-[13px] text-[#22201A] outline-none placeholder:text-[#75705F]/50"
             />
@@ -407,8 +445,9 @@ function ChatWindow({ document }) {
           </form>
 
           <p className="mt-2 text-center text-[10px] text-[#75705F]/50">
-            DocMind uses retrieval-augmented generation to answer from your
-            documents.
+            {isVideo
+              ? "DocMind answers using the video's transcript."
+              : "DocMind uses retrieval-augmented generation to answer from your documents."}
           </p>
         </div>
       </div>

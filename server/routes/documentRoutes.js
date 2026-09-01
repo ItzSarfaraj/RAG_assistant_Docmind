@@ -9,9 +9,13 @@ import {
   deleteDocument,
 } from "../controllers/documentControllers.js";
 
+import { addVideo } from "../controllers/videoController.js";
+
 const router = express.Router();
 
 router.post("/upload", protect, upload.single("document"), uploadDocument);
+
+router.post("/video", protect, addVideo);
 
 router.get("/", protect, getDocuments);
 

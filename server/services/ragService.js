@@ -1,31 +1,38 @@
 import axios from "axios";
 
-const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || "http://127.0.0.1:8000";
+const RAG_SERVICE_URL =
+  process.env.RAG_SERVICE_URL || "http://127.0.0.1:8000";
 
 const ragClient = axios.create({
   baseURL: RAG_SERVICE_URL,
   timeout: 120000,
 });
 
-// ==========================================
-// Document Indexing
-// ==========================================
+const indexDocument = async ({
+  source,
+  documentId,
+  sourceType = "file",
+}) => {
+  try {
+    const response = await ragClient.post("/documents/index", {
+      source,
+      document_id: documentId,
+      source_type: sourceType,
+    });
 
-const indexDocument = async ({ filePath, documentId }) => {
-  const response = await ragClient.post("/documents/index", {
-    file_path: filePath,
-    document_id: documentId,
-  });
+    return response.data;
+  } catch (error) {
+    console.error(
+      "RAG indexing error:",
+      error.response?.data || error.message,
+    );
 
-  return response.data;
+    throw error;
+  }
 };
 
-// ==========================================
-// Normal Question Answering
-// ==========================================
-
 const askQuestion = async ({ question, documentId, k = 4 }) => {
-  const response = await ragClient.post("/chat", {
+  const response = await ragClient.post("/chat/answer", {
     question,
     document_id: documentId,
     k,
@@ -34,11 +41,12 @@ const askQuestion = async ({ question, documentId, k = 4 }) => {
   return response.data;
 };
 
-// ==========================================
-// Streaming Question Answering
-// ==========================================
-
-const streamQuestion = async ({ question, documentId, k = 4, onChunk }) => {
+const streamQuestion = async ({
+  question,
+  documentId,
+  k = 4,
+  onChunk,
+}) => {
   const response = await ragClient.post(
     "/chat",
     {
@@ -53,14 +61,12 @@ const streamQuestion = async ({ question, documentId, k = 4, onChunk }) => {
   );
 
   const stream = response.data;
-
   let buffer = "";
 
   stream.on("data", (chunk) => {
     buffer += chunk.toString();
 
     const events = buffer.split("\n\n");
-
     buffer = events.pop() || "";
 
     for (const event of events) {
@@ -72,7 +78,6 @@ const streamQuestion = async ({ question, documentId, k = 4, onChunk }) => {
 
       try {
         const parsed = JSON.parse(data);
-
         onChunk(parsed);
       } catch (error) {
         console.error("Failed to parse RAG stream:", error);
@@ -81,14 +86,13 @@ const streamQuestion = async ({ question, documentId, k = 4, onChunk }) => {
   });
 
   return new Promise((resolve, reject) => {
-    stream.on("end", () => {
-      resolve();
-    });
-
-    stream.on("error", (error) => {
-      reject(error);
-    });
+    stream.on("end", resolve);
+    stream.on("error", reject);
   });
 };
 
-export { indexDocument, askQuestion, streamQuestion };
+export {
+  indexDocument,
+  askQuestion,
+  streamQuestion,
+};

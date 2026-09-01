@@ -9,6 +9,7 @@ import documentRoutes from "./routes/documentRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import chatHistoryRoutes from "./routes/chatHistoryRoutes.js";
+import webRoutes from "./routes/webRoutes.js";
 
 dotenv.config();
 
@@ -50,6 +51,7 @@ app.use("/api/chat", chatRoutes);
 
 app.use("/api/chat-history", chatHistoryRoutes);
 
+app.use("/api/web", webRoutes);
 // Health Check
 
 app.get("/api/health", (req, res) => {

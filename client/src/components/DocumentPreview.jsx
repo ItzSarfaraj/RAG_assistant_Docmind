@@ -1,6 +1,10 @@
 import { useState } from "react";
+import PdfPreview from "./PdfPreview";
+import WebPreview from "./WebPreview";
+import VideoPreview from "./videoPreview";
 
-function DocumentPreview({ document, onClose }) {
+
+function DocumentPreview({ document, onClose,seekTime }) {
   const NORMAL_WIDTH = 380;
   const EXPANDED_WIDTH = 650;
   const MIN_WIDTH = 320;
@@ -11,9 +15,9 @@ function DocumentPreview({ document, onClose }) {
 
   const isExpanded = width >= EXPANDED_WIDTH;
 
-  // ==========================================
-  // START RESIZING
-  // ==========================================
+  const isPdf = document?.contentType === "pdf";
+  const isWeb = document?.sourceType === "web";
+  const isVideo = document?.sourceType === "video";
 
   const handlePointerDown = (event) => {
     event.preventDefault();
@@ -59,25 +63,15 @@ function DocumentPreview({ document, onClose }) {
     };
 
     event.currentTarget.addEventListener("pointermove", handlePointerMove);
-
     event.currentTarget.addEventListener("pointerup", handlePointerUp);
-
     event.currentTarget.addEventListener("pointercancel", handlePointerUp);
   };
-
-  // ==========================================
-  // DOUBLE CLICK
-  // ==========================================
 
   const handleDoubleClick = () => {
     setWidth((previousWidth) =>
       previousWidth >= EXPANDED_WIDTH ? NORMAL_WIDTH : EXPANDED_WIDTH,
     );
   };
-
-  // ==========================================
-  // TOGGLE EXPAND BUTTON
-  // ==========================================
 
   const handleToggleExpand = () => {
     setWidth((previousWidth) =>
@@ -89,10 +83,6 @@ function DocumentPreview({ document, onClose }) {
     return null;
   }
 
-  const isPdf = document.contentType === "pdf";
-
-  const fileUrl = document.url ? `http://localhost:5000${document.url}` : null;
-
   return (
     <aside
       style={{
@@ -102,10 +92,7 @@ function DocumentPreview({ document, onClose }) {
         isResizing ? "select-none" : ""
       }`}
     >
-      {/* ==========================================
-          RESIZE HANDLE
-      ========================================== */}
-
+      {/* Resize handle */}
       <div
         onPointerDown={handlePointerDown}
         onDoubleClick={handleDoubleClick}
@@ -114,8 +101,6 @@ function DocumentPreview({ document, onClose }) {
         }`}
         title="Drag to resize · Double-click to expand"
       >
-        {/* Visible resize indicator */}
-
         <div
           className={`absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full transition ${
             isResizing
@@ -125,16 +110,11 @@ function DocumentPreview({ document, onClose }) {
         />
       </div>
 
-      {/* ==========================================
-          HEADER
-      ========================================== */}
-
+      {/* Header */}
       <div className="flex h-[62px] shrink-0 items-center justify-between border-b border-[#E6E1D3] px-4">
-        {/* Document information */}
-
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F3EFE4] text-sm">
-            📄
+            {isWeb ? "🔗" : isVideo ? "🎥" : "📄"}
           </div>
 
           <div className="min-w-0">
@@ -150,13 +130,8 @@ function DocumentPreview({ document, onClose }) {
           </div>
         </div>
 
-        {/* ==========================================
-            HEADER ACTIONS
-        ========================================== */}
-
+        {/* Header actions */}
         <div className="ml-3 flex shrink-0 items-center gap-1">
-          {/* Expand / Collapse */}
-
           <button
             type="button"
             onClick={handleToggleExpand}
@@ -203,8 +178,6 @@ function DocumentPreview({ document, onClose }) {
             )}
           </button>
 
-          {/* Close */}
-
           <button
             type="button"
             onClick={onClose}
@@ -217,17 +190,14 @@ function DocumentPreview({ document, onClose }) {
         </div>
       </div>
 
-      {/* ==========================================
-          DOCUMENT PREVIEW
-      ========================================== */}
-
+      {/* Preview */}
       <div className="min-h-0 flex-1 overflow-hidden bg-[#F7F4EC]">
-        {isPdf && fileUrl ? (
-          <iframe
-            src={fileUrl}
-            title={document.name}
-            className="h-full w-full border-0"
-          />
+        {isPdf ? (
+          <PdfPreview document={document} />
+        ) : isWeb ? (
+          <WebPreview document={document} />
+        ) : isVideo ? (
+          <VideoPreview document={document} seekTime={seekTime} />
         ) : (
           <div className="flex h-full items-center justify-center px-8 text-center">
             <div>
@@ -247,10 +217,7 @@ function DocumentPreview({ document, onClose }) {
         )}
       </div>
 
-      {/* ==========================================
-          FOOTER
-      ========================================== */}
-
+      {/* Footer */}
       <div className="shrink-0 border-t border-[#E6E1D3] bg-white px-4 py-3">
         <div className="flex items-center justify-between">
           <span className="text-[10px] text-[#8A8473]">
@@ -259,7 +226,7 @@ function DocumentPreview({ document, onClose }) {
 
           <span className="flex items-center gap-1.5 text-[10px] text-[#5F7658]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#6F8B68]" />
-            Indexed
+            {document.status || "Indexed"}
           </span>
         </div>
       </div>

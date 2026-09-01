@@ -73,4 +73,30 @@ const deleteDocument = async (documentId, token) => {
     );
   }
 };
-export { uploadDocument,getDocuments,deleteDocument };
+
+const addWebDocument = async (url, token) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/web`,
+      { url },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Web document API error:",
+      error.response?.data || error.message,
+    );
+
+    throw new Error(
+      error.response?.data?.message ||
+        "Failed to process webpage.",
+    );
+  }
+};
+export { uploadDocument,addWebDocument,getDocuments,deleteDocument };

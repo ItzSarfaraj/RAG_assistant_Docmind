@@ -2,6 +2,7 @@ import { useEffect, useState, memo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
+import TimestampText from "./TimestampText";
 import {
   Mark,
   FileIcon,
@@ -178,7 +179,7 @@ function CodeBlock({ children, className }) {
 // CHAT MESSAGE
 // ============================================================
 
-function ChatMessage({ message, isLoading, onRegenerate }) {
+function ChatMessage({ message, isLoading, onRegenerate, onTimestampClick }) {
   const [copied, setCopied] = useState(false);
 
   const isUser = message.role === "user";
@@ -395,36 +396,96 @@ function ChatMessage({ message, isLoading, onRegenerate }) {
                 <span className="text-[11px] font-medium text-[#75705F]/60">
                   Sources
                 </span>
+
+                <span className="text-[10px] text-[#75705F]/40">
+                  · {message.sources.length} relevant{" "}
+                  {message.sources.length === 1 ? "source" : "sources"}
+                </span>
+
                 <span className="h-px flex-1 bg-[#E6E1D3]" />
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {message.sources.map((source, sourceIndex) => {
                   const metadata = source.metadata || {};
+                  const isVideoSource = Boolean(metadata.video_id);
 
                   return (
                     <div
                       key={sourceIndex}
-                      className="rounded-lg border border-[#E6E1D3] bg-white p-3 transition hover:border-[#BD7B24]/40 hover:shadow-sm"
+                      className={`rounded-xl border bg-white p-3 transition ${
+                        isVideoSource
+                          ? "border-[#E6E1D3] hover:border-[#BD7B24]/40 hover:shadow-sm"
+                          : "border-[#E6E1D3] hover:border-[#BD7B24]/40 hover:shadow-sm"
+                      }`}
                     >
-                      <div className="flex gap-2.5">
-                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[#F1EADA] text-[#BD7B24]">
-                          <FileIcon width={13} height={13} />
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="truncate text-[11px] font-medium text-[#3A362C]">
-                            {metadata.file_name ||
-                              metadata.source ||
-                              "Document"}
-                          </p>
-                          {metadata.page !== undefined && (
-                            <p className="mt-1 text-[10px] text-[#75705F]/60">
-                              Page {metadata.page + 1}
-                            </p>
+                      {/* Source header */}
+                      <div className="flex items-start gap-2.5">
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${
+                            isVideoSource
+                              ? "bg-[#F1EADA] text-[#BD7B24]"
+                              : "bg-[#F1EADA] text-[#BD7B24]"
+                          }`}
+                        >
+                          {isVideoSource ? (
+                            "🎥"
+                          ) : (
+                            <FileIcon width={13} height={13} />
                           )}
                         </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[11px] font-semibold text-[#3A362C]">
+                            {isVideoSource
+                              ? "YouTube Video"
+                              : metadata.file_name ||
+                                metadata.source ||
+                                "Document"}
+                          </p>
+
+                          <p className="mt-0.5 truncate text-[9px] text-[#75705F]/50">
+                            {isVideoSource
+                              ? "Relevant video moments"
+                              : metadata.page !== undefined
+                                ? `Page ${metadata.page + 1}`
+                                : "Source"}
+                          </p>
+                        </div>
                       </div>
+
+                      {/* Video timestamps */}
+                      {isVideoSource && source.content && (
+                        <div className="mt-3 rounded-lg bg-[#F7F4EC] px-2.5 py-2.5">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-[9px] font-semibold uppercase tracking-[0.08em] text-[#75705F]/50">
+                              Relevant moments
+                            </span>
+
+                            <span className="text-[9px] text-[#75705F]/40">
+                              Click to jump
+                            </span>
+                          </div>
+
+                          <TimestampText
+                            text={source.content}
+                            onTimestampClick={onTimestampClick}
+                          />
+                        </div>
+                      )}
+
+                      {/* Normal document source */}
+                      {!isVideoSource && (
+                        <>
+                          {metadata.page !== undefined && (
+                            <div className="mt-3 rounded-lg bg-[#F7F4EC] px-2.5 py-2">
+                              <span className="text-[10px] text-[#75705F]">
+                                Page {metadata.page + 1}
+                              </span>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   );
                 })}
