@@ -1,0 +1,24 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic
+
+# LangChain
+langchain
+langchain-core
+langchain-community
+langchain-text-splitters
+langchain-google-genai
+
+# Vector store
+faiss-cpu
+
+# Document loaders
+pypdf
+docx2txt
+
+# Web link ingestion
+beautifulsoup4
+
+# Video link ingestion (YouTube transcripts)
+youtube-transcript-api

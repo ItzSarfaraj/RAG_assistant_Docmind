@@ -1,0 +1,199 @@
+import Document from "../models/Document.js";
+import { indexDocument } from "../services/ragService.js";
+import path from "path";
+
+// @desc    Upload a document
+// @route   POST /api/documents/upload
+// @access  Private
+
+const uploadDocument = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        message: "No document uploaded",
+      });
+    }
+
+    const fileExtension = req.file.originalname.split(".").pop().toLowerCase();
+
+    const allowedTypes = ["pdf", "txt", "docx"];
+
+    if (!allowedTypes.includes(fileExtension)) {
+      return res.status(400).json({
+        message: "Unsupported file type",
+      });
+    }
+
+    const document = await Document.create({
+      user: req.user.id,
+
+      name: req.file.originalname,
+
+      originalName: req.file.originalname,
+
+      sourceType: "file",
+
+      contentType: fileExtension,
+
+      filePath: req.file.path,
+
+      fileSize: req.file.size,
+
+      status: "pending",
+    });
+
+    // ==========================================
+    // Send document to RAG service
+    // ==========================================
+
+    try {
+      const absoluteFilePath = path.resolve(req.file.path);
+
+      console.log("File path sent to RAG:", absoluteFilePath);
+
+      const ragResult = await indexDocument({
+        filePath: absoluteFilePath,
+        documentId: document._id.toString(),
+      });
+
+      // ==========================================
+      // RAG indexing successful
+      // ==========================================
+
+      document.status = "indexed";
+      document.chunkCount = ragResult.chunks_created;
+
+      await document.save();
+
+      return res.status(201).json({
+        message: "Document uploaded and indexed successfully",
+
+        document: {
+          _id: document._id,
+          name: document.name,
+          originalName: document.originalName,
+
+          sourceType: document.sourceType,
+          contentType: document.contentType,
+
+          fileSize: document.fileSize,
+
+          status: document.status,
+          chunkCount: document.chunkCount,
+
+          createdAt: document.createdAt,
+
+          // Browser-accessible URL
+          url: `/uploads/${path.basename(document.filePath)}`,
+        },
+
+        rag: {
+          chunksCreated: ragResult.chunks_created,
+          status: ragResult.status,
+        },
+      });
+    } catch (ragError) {
+      console.error("RAG indexing failed:", ragError.message);
+
+      document.status = "failed";
+      document.errorMessage = ragError.message;
+
+      await document.save();
+
+      return res.status(500).json({
+        message: "Document uploaded but indexing failed",
+
+        document: {
+          _id: document._id,
+          name: document.name,
+          status: document.status,
+          errorMessage: document.errorMessage,
+
+          url: `/uploads/${path.basename(document.filePath)}`,
+        },
+
+        error: ragError.message,
+      });
+    }
+  } catch (error) {
+    console.error("Document upload error:", error.message);
+
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// GET DOCUMENTS
+// ==========================================
+
+const getDocuments = async (req, res) => {
+  try {
+    const documents = await Document.find({
+      user: req.user.id,
+    }).sort({
+      createdAt: -1,
+    });
+
+    const documentsWithUrls = documents.map((document) => {
+      const documentObject = document.toObject();
+
+      return {
+        ...documentObject,
+
+        url: document.filePath
+          ? `/uploads/${path.basename(document.filePath)}`
+          : null,
+      };
+    });
+
+    res.status(200).json({
+      documents: documentsWithUrls,
+    });
+  } catch (error) {
+    console.error("Get documents error:", error.message);
+
+    res.status(500).json({
+      message: "Failed to fetch documents",
+      error: error.message,
+    });
+  }
+};
+
+// ==========================================
+// DELETE DOCUMENT
+// ==========================================
+
+const deleteDocument = async (req, res) => {
+  try {
+    const document = await Document.findOne({
+      _id: req.params.id,
+      user: req.user.id,
+    });
+
+    if (!document) {
+      return res.status(404).json({
+        message: "Document not found",
+      });
+    }
+
+    await Document.deleteOne({
+      _id: document._id,
+    });
+
+    res.status(200).json({
+      message: "Document deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete document error:", error.message);
+
+    res.status(500).json({
+      message: "Failed to delete document",
+      error: error.message,
+    });
+  }
+};
+
+export { uploadDocument, getDocuments, deleteDocument };
