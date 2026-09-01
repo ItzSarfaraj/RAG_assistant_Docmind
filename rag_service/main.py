@@ -2,36 +2,43 @@ import json
 
 from dotenv import load_dotenv
 
-load_dotenv()  # must run before any module reads GOOGLE_API_KEY via config.py
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
-from rag_pipeline.pipeline import index_document, remove_document, ask_question, astream_answer
+from rag_pipeline.pipeline import (
+    index_document,
+    remove_document,
+    ask_question,
+    astream_answer,
+    generate_video_notes,
+)
 from config import logger
+
 
 app = FastAPI(
     title="DocMind RAG Service",
     description="RAG service for DocMind",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten to your frontend's origin(s) in production
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ==========================================
-# Request / Response Models
-# ==========================================
+# ============================================================
+# Request Models
+# ============================================================
 
 class IndexRequest(BaseModel):
-    source: str  # file path (source_type="file") or a URL (source_type="web"/"video")
+    source: str
     document_id: str
     source_type: str = "file"
 
@@ -44,7 +51,7 @@ class IndexRequest(BaseModel):
 
 
 class ChatMessage(BaseModel):
-    role: str  # "user" | "assistant"
+    role: str
     content: str
 
 
@@ -52,21 +59,55 @@ class ChatRequest(BaseModel):
     question: str
     document_id: str
     k: int = 4
-    chat_history: list[ChatMessage] = []
+    chat_history: list[ChatMessage] = Field(default_factory=list)
 
 
-# ==========================================
-# Health Check
-# ==========================================
+class NoteInclude(BaseModel):
+    summary: bool = True
+    keyConcepts: bool = True
+    examples: bool = True
+    code: bool = False
+    flowcharts: bool = False
+    diagrams: bool = False
+    tables: bool = False
+    keyTakeaways: bool = True
+    interviewQuestions: bool = False
+
+
+class NotesRequest(BaseModel):
+    document_id: str
+    detail_level: str = "detailed"
+    explanation_level: str = "intermediate"
+    note_structure: str = "structured"
+    include: NoteInclude = Field(default_factory=NoteInclude)
+    faithful_to_video: bool = True
+
+    @field_validator("note_structure")
+    @classmethod
+    def validate_note_structure(cls, value: str) -> str:
+        allowed = {"structured", "study", "handbook", "revision"}
+
+        if value not in allowed:
+            raise ValueError(
+                "note_structure must be one of: "
+                "structured, study, handbook, revision"
+            )
+
+        return value
+
+
+# ============================================================
+# Health
+# ============================================================
 
 @app.get("/health")
 def health_check():
     return {"status": "ok", "message": "DocMind RAG service is running"}
 
 
-# ==========================================
+# ============================================================
 # Document Indexing
-# ==========================================
+# ============================================================
 
 @app.post("/documents/index")
 def index_document_endpoint(request: IndexRequest):
@@ -77,26 +118,38 @@ def index_document_endpoint(request: IndexRequest):
             source_type=request.source_type,
         )
     except (ValueError, FileNotFoundError) as error:
-        # Bad input from the caller - not a server bug.
         raise HTTPException(status_code=400, detail=str(error))
     except Exception:
         logger.exception("Failed to index document_id=%s", request.document_id)
         raise HTTPException(status_code=500, detail="Indexing failed. Please try again.")
 
 
+# ============================================================
+# Delete Document
+# ============================================================
+
 @app.delete("/documents/{document_id}")
 def delete_document_endpoint(document_id: str):
-    return remove_document(document_id)
+    try:
+        return remove_document(document_id)
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+    except Exception:
+        logger.exception("Failed to delete document_id=%s", document_id)
+        raise HTTPException(status_code=500, detail="Failed to delete document.")
 
 
-# ==========================================
-# Chat / Question Answering (non-streaming)
-# ==========================================
+# ============================================================
+# Chat
+# ============================================================
 
 @app.post("/chat/answer")
 def answer_endpoint(request: ChatRequest):
     try:
         history = [message.model_dump() for message in request.chat_history]
+
         return ask_question(
             question=request.question,
             document_id=request.document_id,
@@ -109,12 +162,15 @@ def answer_endpoint(request: ChatRequest):
         raise HTTPException(status_code=400, detail=str(error))
     except Exception:
         logger.exception("Failed to answer question for document_id=%s", request.document_id)
-        raise HTTPException(status_code=500, detail="Something went wrong answering that question.")
+        raise HTTPException(
+            status_code=500,
+            detail="Something went wrong answering that question.",
+        )
 
 
-# ==========================================
-# Chat / Question Answering (streamed)
-# ==========================================
+# ============================================================
+# Streaming Chat
+# ============================================================
 
 @app.post("/chat")
 def chat_endpoint(request: ChatRequest):
@@ -130,11 +186,47 @@ def chat_endpoint(request: ChatRequest):
             ):
                 yield f"data: {json.dumps(item)}\n\n"
         except Exception as error:
-            logger.exception("Error while streaming answer for document_id=%s", request.document_id)
+            logger.exception(
+                "Error while streaming answer for document_id=%s",
+                request.document_id,
+            )
             yield f"data: {json.dumps({'type': 'error', 'message': str(error)})}\n\n"
 
     return StreamingResponse(
         generate(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        },
     )
+
+
+# ============================================================
+# Generate Notes
+# ============================================================
+
+@app.post("/notes/generate")
+def generate_notes_endpoint(request: NotesRequest):
+    try:
+        return generate_video_notes(
+            document_id=request.document_id,
+            detail_level=request.detail_level,
+            explanation_level=request.explanation_level,
+            note_structure=request.note_structure,
+            include=request.include.model_dump(),
+            faithful_to_video=request.faithful_to_video,
+        )
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+    except Exception:
+        logger.exception(
+            "Failed to generate notes for document_id=%s",
+            request.document_id,
+        )
+        raise HTTPException(
+            status_code=500,
+            detail="Note generation failed. Please try again.",
+        )

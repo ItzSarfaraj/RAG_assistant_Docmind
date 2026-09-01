@@ -1,7 +1,7 @@
 import { useState } from "react";
 import PdfPreview from "./PdfPreview";
 import WebPreview from "./WebPreview";
-import VideoPreview from "./videoPreview";
+import VideoPreview from "./VideoPreview";
 
 
 function DocumentPreview({ document, onClose,seekTime }) {
@@ -191,7 +191,7 @@ function DocumentPreview({ document, onClose,seekTime }) {
       </div>
 
       {/* Preview */}
-      <div className="min-h-0 flex-1 overflow-hidden bg-[#F7F4EC]">
+      <div className="min-h-0 flex-1 overflow-hidden bg-[#F0EDE4]]">
         {isPdf ? (
           <PdfPreview document={document} />
         ) : isWeb ? (

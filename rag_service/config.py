@@ -35,7 +35,7 @@ RETRIEVAL_SCORE_THRESHOLD = float(os.getenv("RETRIEVAL_SCORE_THRESHOLD", "1.0"))
 # MAX_OUTPUT_TOKENS is the primary defense (passed straight to the model).
 # MAX_STREAM_SECONDS / MAX_STREAM_CHARS are a backstop in the streaming loop
 # itself, in case the model ignores/exceeds the token cap.
-MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "2048"))
+MAX_OUTPUT_TOKENS = int(os.getenv("MAX_OUTPUT_TOKENS", "8192"))
 MAX_STREAM_SECONDS = int(os.getenv("MAX_STREAM_SECONDS", "45"))
 MAX_STREAM_CHARS = int(os.getenv("MAX_STREAM_CHARS", "20000"))
 

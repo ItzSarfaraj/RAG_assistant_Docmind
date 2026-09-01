@@ -20,7 +20,7 @@ function WebPreview({ document }) {
             Webpage unavailable
           </h3>
 
-          <p className="mt-2 text-xs leading-5 text-[#8A8473]">
+          <p className="mt-2 text-xs leading-5 text-[#fce4a3]">
             The webpage URL is not available.
           </p>
         </div>
@@ -29,7 +29,7 @@ function WebPreview({ document }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#F7F4EC]">
+    <div className="flex h-full min-h-0 flex-col bg-[#F0EDE4]">
       {/* Preview area */}
       <div className="flex min-h-0 flex-1 items-center justify-center px-6">
         <div className="w-full max-w-sm">

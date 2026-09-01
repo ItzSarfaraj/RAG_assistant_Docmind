@@ -71,3 +71,14 @@ def delete_vector_store(document_id: str) -> None:
     if os.path.exists(store_path):
         shutil.rmtree(store_path)
         logger.info("Deleted vector store for document_id=%s", document_id)
+
+def get_all_documents(document_id: str):
+    """
+    Return every document chunk stored in the FAISS index.
+
+    Used for whole-document operations such as note generation,
+    where semantic top-k retrieval would miss important sections.
+    """
+    vector_store = load_vector_store(document_id)
+
+    return list(vector_store.docstore._dict.values())        
