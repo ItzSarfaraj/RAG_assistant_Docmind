@@ -132,34 +132,23 @@ const uploadDocument = async (req, res) => {
 
 const getDocuments = async (req, res) => {
   try {
-    const documents = await Document.find({
-      user: req.user.id,
-    }).sort({
-      createdAt: -1,
-    });
+    const documents = await Document.find({ user: req.user.id })
+      .populate("folder", "name color")
+      .sort({ createdAt: -1 });
 
     const documentsWithUrls = documents.map((document) => {
       const documentObject = document.toObject();
 
       return {
         ...documentObject,
-
-        url: document.filePath
-          ? `/uploads/${path.basename(document.filePath)}`
-          : null,
+        url: document.filePath ? `/uploads/${path.basename(document.filePath)}` : null,
       };
     });
 
-    res.status(200).json({
-      documents: documentsWithUrls,
-    });
+    res.status(200).json({ documents: documentsWithUrls });
   } catch (error) {
     console.error("Get documents error:", error.message);
-
-    res.status(500).json({
-      message: "Failed to fetch documents",
-      error: error.message,
-    });
+    res.status(500).json({ message: "Failed to fetch documents", error: error.message });
   }
 };
 
@@ -197,4 +186,44 @@ const deleteDocument = async (req, res) => {
   }
 };
 
-export { uploadDocument, getDocuments, deleteDocument };
+const updateDocument = async (req, res) => {
+  try {
+    const { folder, progress, name } = req.body;
+
+    const document = await Document.findOne({ _id: req.params.id, user: req.user.id });
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found." });
+    }
+
+    if (name !== undefined) {
+      if (!name.trim()) {
+        return res.status(400).json({ message: "Document name cannot be empty." });
+      }
+      document.name = name.trim();
+    }
+
+    if (folder !== undefined) {
+      document.folder = folder || null;
+    }
+
+    if (progress !== undefined) {
+      document.progress = Math.max(0, Math.min(100, Number(progress) || 0));
+    }
+
+    await document.save();
+    await document.populate("folder", "name color");
+
+    return res.status(200).json({
+      document: {
+        ...document.toObject(),
+        url: document.filePath ? `/uploads/${path.basename(document.filePath)}` : null,
+      },
+    });
+  } catch (error) {
+    console.error("Update document error:", error.message);
+    return res.status(500).json({ message: "Failed to update document." });
+  }
+};
+
+export { uploadDocument, getDocuments, deleteDocument,updateDocument };

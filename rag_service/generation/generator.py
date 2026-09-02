@@ -12,7 +12,7 @@ def _format_history(chat_history) -> str:
 
 def generate_answer(question: str, context: str, chat_history=None) -> str:
     prompt = get_rag_prompt()
-    llm = get_llm()
+    llm = get_llm(temperature=0)
     chain = prompt | llm
 
     response = chain.invoke({
@@ -25,7 +25,7 @@ def generate_answer(question: str, context: str, chat_history=None) -> str:
 
 def stream_answer_from_llm(question: str, context: str, chat_history=None):
     prompt = get_rag_prompt()
-    llm = get_llm()
+    llm = get_llm(temperature=0)
     chain = prompt | llm
 
     for chunk in chain.stream({
@@ -43,7 +43,7 @@ async def astream_answer_from_llm(question: str, context: str, chat_history=None
     network I/O to the Gemini API during a stream.
     """
     prompt = get_rag_prompt()
-    llm = get_llm()
+    llm = get_llm(temperature=0)
     chain = prompt | llm
 
     async for chunk in chain.astream({

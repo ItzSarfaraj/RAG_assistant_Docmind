@@ -7,6 +7,7 @@ import {
   uploadDocument,
   getDocuments,
   deleteDocument,
+  updateDocument
 } from "../controllers/documentControllers.js";
 
 import { addVideo } from "../controllers/videoController.js";
@@ -20,5 +21,7 @@ router.post("/video", protect, addVideo);
 router.get("/", protect, getDocuments);
 
 router.delete("/:id", protect, deleteDocument);
+
+router.patch("/:id", protect, updateDocument);
 
 export default router;

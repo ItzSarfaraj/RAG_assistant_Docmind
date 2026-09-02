@@ -15,6 +15,7 @@ from rag_pipeline.pipeline import (
     ask_question,
     astream_answer,
     generate_video_notes,
+    astream_video_notes,   # new
 )
 from config import logger
 
@@ -207,9 +208,9 @@ def chat_endpoint(request: ChatRequest):
 # ============================================================
 
 @app.post("/notes/generate")
-def generate_notes_endpoint(request: NotesRequest):
+async def generate_notes_endpoint(request: NotesRequest):
     try:
-        return generate_video_notes(
+        return await generate_video_notes(
             document_id=request.document_id,
             detail_level=request.detail_level,
             explanation_level=request.explanation_level,
@@ -230,3 +231,30 @@ def generate_notes_endpoint(request: NotesRequest):
             status_code=500,
             detail="Note generation failed. Please try again.",
         )
+
+
+@app.post("/notes/generate/stream")
+def generate_notes_stream_endpoint(request: NotesRequest):
+    async def generate():
+        try:
+            async for item in astream_video_notes(
+                document_id=request.document_id,
+                detail_level=request.detail_level,
+                explanation_level=request.explanation_level,
+                note_structure=request.note_structure,
+                include=request.include.model_dump(),
+                faithful_to_video=request.faithful_to_video,
+            ):
+                yield f"data: {json.dumps(item)}\n\n"
+        except Exception:
+            logger.exception(
+                "Error while streaming notes for document_id=%s",
+                request.document_id,
+            )
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Note generation failed.'})}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+    )

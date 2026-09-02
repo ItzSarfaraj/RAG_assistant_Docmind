@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { postSSE } from "../services/sseFetch"; // adjust path to your project
 
 function NoteGenerator({ document, onGenerated }) {
   const navigate = useNavigate();
@@ -8,6 +9,7 @@ function NoteGenerator({ document, onGenerated }) {
   const [noteStructure, setNoteStructure] = useState("structured");
   const [faithfulToVideo, setFaithfulToVideo] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [progress, setProgress] = useState(null); // { completed, total } or { remaining_sections }
   const [error, setError] = useState("");
 
   const [include, setInclude] = useState({
@@ -32,49 +34,47 @@ function NoteGenerator({ document, onGenerated }) {
     const token = localStorage.getItem("token");
     if (!token) return setError("Please login before generating notes.");
 
-    try {
-      setGenerating(true);
-      setError("");
+    setGenerating(true);
+    setError("");
+    setProgress(null);
 
-      const response = await fetch("/api/notes/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+    try {
+      let result = null;
+
+      await postSSE(
+        "/api/notes/generate",
+        {
           documentId: document._id,
           detailLevel,
           explanationLevel,
           noteStructure,
           include,
           faithfulToVideo,
-        }),
-      });
+        },
+        token,
+        (event) => {
+          if (event.type === "progress") {
+            setProgress(event);
+          } else if (event.type === "complete") {
+            result = event.note;
+          } else if (event.type === "error") {
+            throw new Error(event.message || "Failed to generate notes.");
+          }
+        },
+      );
 
-      const text = await response.text();
-      let data = {};
-
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        throw new Error(`Invalid server response (${response.status}).`);
+      if (!result?._id) {
+        throw new Error("Notes generated but note ID was not returned.");
       }
 
-      if (!response.ok)
-        throw new Error(data.message || "Failed to generate notes.");
-
-      if (!data.note?._id)
-        throw new Error("Notes generated but note ID was not returned.");
-
-      onGenerated?.(data);
-
-      navigate(`/notes/${data.note._id}`);
+      onGenerated?.({ note: result });
+      navigate(`/notes/${result._id}`);
     } catch (error) {
       console.error("NOTE GENERATION ERROR:", error);
       setError(error.message || "Failed to generate notes.");
     } finally {
       setGenerating(false);
+      setProgress(null);
     }
   };
 
@@ -89,6 +89,14 @@ function NoteGenerator({ document, onGenerated }) {
     ["keyTakeaways", "Key Takeaways"],
     ["interviewQuestions", "Interview Questions"],
   ];
+
+  const progressLabel = progress
+    ? progress.stage === "batches"
+      ? `Analyzing video (${progress.completed}/${progress.total})...`
+      : progress.stage === "merging"
+      ? `Combining sections (${progress.remaining_sections} left)...`
+      : "Generating Notes..."
+    : "Generating Notes...";
 
   return (
     <div className="space-y-5">
@@ -224,7 +232,7 @@ function NoteGenerator({ document, onGenerated }) {
         className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#22201A] px-4 py-3 text-xs font-semibold text-white transition hover:bg-[#3A362C] disabled:cursor-not-allowed disabled:opacity-50"
       >
         <span>📝</span>
-        {generating ? "Generating Notes..." : "Generate Notes"}
+        {generating ? progressLabel : "Generate Notes"}
       </button>
     </div>
   );

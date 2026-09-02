@@ -51,3 +51,11 @@ MAX_STREAM_CHARS = int(os.getenv("MAX_STREAM_CHARS", "20000"))
 
 os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+# Note generation performance tuning
+TARGET_BATCH_COUNT = int(os.getenv("TARGET_BATCH_COUNT", "16"))
+MIN_BATCH_CHAR_LIMIT = int(os.getenv("MIN_BATCH_CHAR_LIMIT", "8000"))
+MAX_BATCH_CHAR_LIMIT = int(os.getenv("MAX_BATCH_CHAR_LIMIT", "60000"))
+NOTES_MAX_CONCURRENCY = int(os.getenv("NOTES_MAX_CONCURRENCY", "5"))
+NOTES_REDUCE_GROUP_SIZE = int(os.getenv("NOTES_REDUCE_GROUP_SIZE", "6"))
+NOTES_LLM_MAX_RETRIES = int(os.getenv("NOTES_LLM_MAX_RETRIES", "3"))

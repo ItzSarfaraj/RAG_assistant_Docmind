@@ -1,91 +1,47 @@
+// services/ragService.js
 import axios from "axios";
 
-const RAG_SERVICE_URL =
-  process.env.RAG_SERVICE_URL || "http://127.0.0.1:8000";
+const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || "http://127.0.0.1:8000";
 
 const ragClient = axios.create({
   baseURL: RAG_SERVICE_URL,
-  timeout: 120000,
+  timeout: 120000, // default for quick calls (index, chat/answer)
 });
 
-const indexDocument = async ({
-  source,
-  documentId,
-  sourceType = "file",
-}) => {
-  try {
-    const response = await ragClient.post("/documents/index", {
-      source,
-      document_id: documentId,
-      source_type: sourceType,
-    });
-
-    console.log("RAG response:", response.data);
-
-    return response.data;
-  } catch (error) {
-    console.error(
-      "RAG indexing error:",
-      error.response?.data || error.message,
-    );
-
-    throw error;
-  }
+const indexDocument = async ({ source, documentId, sourceType = "file" }) => {
+  const response = await ragClient.post("/documents/index", {
+    source,
+    document_id: documentId,
+    source_type: sourceType,
+  });
+  return response.data;
 };
 
-const askQuestion = async ({
-  question,
-  documentId,
-  k = 4,
-}) => {
+const askQuestion = async ({ question, documentId, k = 4 }) => {
   const response = await ragClient.post("/chat/answer", {
     question,
     document_id: documentId,
     k,
   });
-
   return response.data;
 };
 
-const streamQuestion = async ({
-  question,
-  documentId,
-  k = 4,
-  onChunk,
-}) => {
+const streamQuestion = async ({ question, documentId, k = 4, onChunk }) => {
   const response = await ragClient.post(
     "/chat",
-    {
-      question,
-      document_id: documentId,
-      k,
-    },
-    {
-      responseType: "stream",
-      timeout: 120000,
-    },
+    { question, document_id: documentId, k },
+    { responseType: "stream", timeout: 120000 },
   );
 
-  const stream = response.data;
-
   let buffer = "";
-
-  stream.on("data", (chunk) => {
+  response.data.on("data", (chunk) => {
     buffer += chunk.toString();
-
     const events = buffer.split("\n\n");
     buffer = events.pop() || "";
-
     for (const event of events) {
-      if (!event.startsWith("data:")) {
-        continue;
-      }
-
-      const data = event.replace(/^data:\s*/, "");
-
+      if (!event.startsWith("data:")) continue;
       try {
-        const parsed = JSON.parse(data);
-        onChunk(parsed);
+        onChunk(JSON.parse(event.replace(/^data:\s*/, "")));
       } catch (error) {
         console.error("Failed to parse RAG stream:", error);
       }
@@ -93,11 +49,13 @@ const streamQuestion = async ({
   });
 
   return new Promise((resolve, reject) => {
-    stream.on("end", resolve);
-    stream.on("error", reject);
+    response.data.on("end", resolve);
+    response.data.on("error", reject);
   });
 };
 
+// Blocking notes call — kept for any caller that just wants the final result
+// (e.g. background workers). Prefer streamNotes for anything user-facing.
 const generateNotes = async ({
   documentId,
   detailLevel = "detailed",
@@ -106,38 +64,74 @@ const generateNotes = async ({
   include = {},
   faithfulToVideo = true,
 }) => {
-  try {
-    const response = await ragClient.post(
-      "/notes/generate",
-      {
-        document_id: documentId,
-        detail_level: detailLevel,
-        explanation_level: explanationLevel,
-        note_structure: noteStructure,
-        include,
-        faithful_to_video: faithfulToVideo,
-      },
-      {
-        timeout: 600000,
-      },
-    );
+  const response = await ragClient.post(
+    "/notes/generate",
+    {
+      document_id: documentId,
+      detail_level: detailLevel,
+      explanation_level: explanationLevel,
+      note_structure: noteStructure,
+      include,
+      faithful_to_video: faithfulToVideo,
+    },
+    { timeout: 600000 },
+  );
+  return response.data;
+};
 
-    console.log("RAG notes response received");
+// Streams progress events from the RAG service's /notes/generate/stream
+// endpoint. onEvent receives {type: "progress"|"notes"|"error"|"done", ...}
+const streamNotes = async ({
+  documentId,
+  detailLevel = "detailed",
+  explanationLevel = "intermediate",
+  noteStructure = "structured",
+  include = {},
+  faithfulToVideo = true,
+  onEvent,
+}) => {
+  const response = await ragClient.post(
+    "/notes/generate/stream",
+    {
+      document_id: documentId,
+      detail_level: detailLevel,
+      explanation_level: explanationLevel,
+      note_structure: noteStructure,
+      include,
+      faithful_to_video: faithfulToVideo,
+    },
+    { responseType: "stream", timeout: 600000 },
+  );
 
-    return response.data;
-  } catch (error) {
-    console.error(
-      "RAG note generation error:",
-      error.response?.data || error.message,
-    );
+  let buffer = "";
+  let finalPayload = null;
 
-    throw error;
+  response.data.on("data", (chunk) => {
+    buffer += chunk.toString();
+    const events = buffer.split("\n\n");
+    buffer = events.pop() || "";
+    for (const event of events) {
+      if (!event.startsWith("data:")) continue;
+      try {
+        const parsed = JSON.parse(event.replace(/^data:\s*/, ""));
+        if (parsed.type === "notes") finalPayload = parsed;
+        onEvent?.(parsed);
+      } catch (error) {
+        console.error("Failed to parse RAG notes stream:", error);
+      }
+    }
+  });
+
+  await new Promise((resolve, reject) => {
+    response.data.on("end", resolve);
+    response.data.on("error", reject);
+  });
+
+  if (!finalPayload) {
+    throw new Error("RAG service closed the stream without returning notes.");
   }
+
+  return finalPayload;
 };
 
-export {
-  indexDocument,
-  askQuestion,
-  streamQuestion,
-  generateNotes,
-};
+export { indexDocument, askQuestion, streamQuestion, generateNotes, streamNotes };

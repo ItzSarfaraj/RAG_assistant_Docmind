@@ -54,6 +54,18 @@ const documentSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    folder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Folder",
+      default: null,
+    },
+
+    progress: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
 
     // Processing state
     status: {

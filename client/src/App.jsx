@@ -105,7 +105,7 @@ function App() {
         path="/dashboard"
         element={
           <LayoutRoute>
-            <Dashboard />
+            <Dashboard user={user} />
           </LayoutRoute>
         }
       />

@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   FlaskConical,
+  FileText,
   NotebookPen,
   Search,
   Sparkles,
@@ -16,47 +17,24 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
   const sections = [
     {
       title: "Main",
-      items: [
-        {
-          to: "/dashboard",
-          label: "Dashboard",
-          icon: LayoutDashboard,
-        },
-      ],
+      items: [{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
     },
     {
       title: "Workspace",
       items: [
-        {
-          to: "/workspace",
-          label: "Workspace",
-          icon: FlaskConical,
-        },
+        { to: "/workspace", label: "Workspace", icon: FlaskConical },
+        { to: "/documents", label: "Documents", icon: FileText },
       ],
     },
     {
       title: "My Notes",
-      items: [
-        {
-          to: "/notes",
-          label: "Notes",
-          icon: NotebookPen,
-        },
-      ],
+      items: [{ to: "/notes", label: "Notes", icon: NotebookPen }],
     },
     {
       title: "Tools",
       items: [
-        {
-          to: "/search",
-          label: "Search",
-          icon: Search,
-        },
-        {
-          to: "/ai-tools",
-          label: "AI Tools",
-          icon: Sparkles,
-        },
+        { to: "/search", label: "Search", icon: Search },
+        { to: "/ai-tools", label: "AI Tools", icon: Sparkles },
       ],
     },
   ];
@@ -64,18 +42,13 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
   return (
     <>
       {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          onClick={onClose}
-        />
+        <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
       )}
 
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-[#16150F] text-[#F3EFE4] transition-all duration-300 ${
           open ? "translate-x-0" : "-translate-x-full"
-        } ${
-          collapsed ? "w-[68px]" : "w-60"
-        } md:static md:translate-x-0`}
+        } ${collapsed ? "w-[68px]" : "w-60"} md:static md:translate-x-0`}
       >
         <div
           className={`flex h-16 shrink-0 items-center border-b border-[#F3EFE4]/8 ${
@@ -89,13 +62,8 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
 
             {!collapsed && (
               <div>
-                <p className="font-[Fraunces] text-sm leading-none">
-                  DocMind
-                </p>
-
-                <p className="mt-1 text-[9px] text-[#F3EFE4]/35">
-                  Research workspace
-                </p>
+                <p className="font-[Fraunces] text-sm leading-none">DocMind</p>
+                <p className="mt-1 text-[9px] text-[#F3EFE4]/35">Research workspace</p>
               </div>
             )}
           </div>
@@ -116,13 +84,10 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
             onClick={onClose}
             title={collapsed ? "New source" : undefined}
             className={`flex items-center rounded-lg border border-[#F3EFE4]/10 bg-[#F3EFE4]/[0.05] text-xs font-medium text-[#F3EFE4]/80 transition hover:border-[#E3B368]/30 hover:bg-[#E3B368]/[0.08] hover:text-[#E3B368] ${
-              collapsed
-                ? "h-10 justify-center"
-                : "gap-2.5 px-3 py-2.5"
+              collapsed ? "h-10 justify-center" : "gap-2.5 px-3 py-2.5"
             }`}
           >
             <Plus size={15} />
-
             {!collapsed && "New source"}
           </NavLink>
         </div>
@@ -144,10 +109,8 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
                     onClick={onClose}
                     title={collapsed ? label : undefined}
                     className={({ isActive }) =>
-                      `flex items-center rounded-lg text-xs transition ${
-                        collapsed
-                          ? "h-10 justify-center"
-                          : "gap-3 px-3 py-2.5"
+                      `group relative flex items-center rounded-lg text-xs transition ${
+                        collapsed ? "h-10 justify-center" : "gap-3 px-3 py-2.5"
                       } ${
                         isActive
                           ? "bg-[#F3EFE4]/[0.09] text-[#F3EFE4]"
@@ -155,9 +118,15 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
                       }`
                     }
                   >
-                    <Icon size={15} strokeWidth={1.8} />
-
-                    {!collapsed && label}
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[#E3B368]" />
+                        )}
+                        <Icon size={15} strokeWidth={1.8} />
+                        {!collapsed && label}
+                      </>
+                    )}
                   </NavLink>
                 ))}
               </div>
@@ -172,9 +141,7 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
             title={collapsed ? "Settings" : undefined}
             className={({ isActive }) =>
               `flex items-center rounded-lg text-xs transition ${
-                collapsed
-                  ? "h-10 justify-center"
-                  : "gap-3 px-3 py-2.5"
+                collapsed ? "h-10 justify-center" : "gap-3 px-3 py-2.5"
               } ${
                 isActive
                   ? "bg-[#F3EFE4]/[0.09] text-[#F3EFE4]"
@@ -183,7 +150,6 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
             }
           >
             <Settings size={15} strokeWidth={1.8} />
-
             {!collapsed && "Settings"}
           </NavLink>
 
@@ -191,18 +157,11 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
             type="button"
             onClick={onToggleCollapse}
             className={`mt-1 flex w-full items-center rounded-lg text-xs text-[#F3EFE4]/40 transition hover:bg-[#F3EFE4]/[0.05] hover:text-[#F3EFE4]/80 ${
-              collapsed
-                ? "h-10 justify-center"
-                : "gap-3 px-3 py-2.5"
+              collapsed ? "h-10 justify-center" : "gap-3 px-3 py-2.5"
             }`}
             title={collapsed ? "Show sidebar" : "Hide sidebar"}
           >
-            {collapsed ? (
-              <PanelLeftOpen size={15} strokeWidth={1.8} />
-            ) : (
-              <PanelLeftClose size={15} strokeWidth={1.8} />
-            )}
-
+            {collapsed ? <PanelLeftOpen size={15} strokeWidth={1.8} /> : <PanelLeftClose size={15} strokeWidth={1.8} />}
             {!collapsed && "Hide sidebar"}
           </button>
         </div>

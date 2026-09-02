@@ -99,4 +99,17 @@ const addWebDocument = async (url, token) => {
     );
   }
 };
-export { uploadDocument,addWebDocument,getDocuments,deleteDocument };
+
+const updateDocument = async (documentId, updates, token) => {
+  try {
+    const response = await axios.patch(
+      `${API_URL}/documents/${documentId}`,
+      updates,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to update document.");
+  }
+};
+export { uploadDocument,addWebDocument,getDocuments,deleteDocument, updateDocument };
