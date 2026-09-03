@@ -1,4 +1,4 @@
-function PdfPreview({ document }) {
+function PdfPreview({ document, page }) {
   if (!document?.url) {
     return (
       <div className="flex h-full items-center justify-center px-8 text-center">
@@ -21,9 +21,19 @@ function PdfPreview({ document }) {
 
   const fileUrl = `http://localhost:5000${document.url}`;
 
+  const pageNumber =
+    typeof page === "number" && !Number.isNaN(page)
+      ? page + 1
+      : null;
+
+  const previewUrl = pageNumber
+    ? `${fileUrl}#page=${pageNumber}`
+    : fileUrl;
+
   return (
     <iframe
-      src={fileUrl}
+      key={`${document._id || document.url}-${pageNumber || 0}`}
+      src={previewUrl}
       title={document.name || "PDF document"}
       className="h-full w-full border-0"
     />

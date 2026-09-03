@@ -12,7 +12,13 @@ import PdfPreview from "./PdfPreview";
 import WebPreview from "./WebPreview";
 import VideoPreview from "./VideoPreview";
 
-function DocumentPreview({ document, onClose, seekTime }) {
+function DocumentPreview({
+  document,
+  onClose,
+  seekTime,
+  page,
+  fullscreen = false,
+}) {
   const NORMAL_WIDTH = 380;
   const EXPANDED_WIDTH = 650;
   const MIN_WIDTH = 320;
@@ -64,21 +70,38 @@ function DocumentPreview({ document, onClose, seekTime }) {
         handlePointerMove,
       );
 
-      upEvent.currentTarget.removeEventListener("pointerup", handlePointerUp);
+      upEvent.currentTarget.removeEventListener(
+        "pointerup",
+        handlePointerUp,
+      );
+
       upEvent.currentTarget.removeEventListener(
         "pointercancel",
         handlePointerUp,
       );
     };
 
-    event.currentTarget.addEventListener("pointermove", handlePointerMove);
-    event.currentTarget.addEventListener("pointerup", handlePointerUp);
-    event.currentTarget.addEventListener("pointercancel", handlePointerUp);
+    event.currentTarget.addEventListener(
+      "pointermove",
+      handlePointerMove,
+    );
+
+    event.currentTarget.addEventListener(
+      "pointerup",
+      handlePointerUp,
+    );
+
+    event.currentTarget.addEventListener(
+      "pointercancel",
+      handlePointerUp,
+    );
   };
 
   const handleToggleExpand = () => {
     setWidth((previousWidth) =>
-      previousWidth >= EXPANDED_WIDTH ? NORMAL_WIDTH : EXPANDED_WIDTH,
+      previousWidth >= EXPANDED_WIDTH
+        ? NORMAL_WIDTH
+        : EXPANDED_WIDTH,
     );
   };
 
@@ -86,27 +109,31 @@ function DocumentPreview({ document, onClose, seekTime }) {
 
   return (
     <aside
-      style={{ width: `${width}px` }}
-      className={`relative hidden shrink-0 flex-col border-l border-[#E6E1D3] bg-white xl:flex ${
-        isResizing ? "select-none" : ""
-      }`}
+      style={fullscreen ? undefined : { width: `${width}px` }}
+      className={`relative flex flex-col bg-white ${
+        fullscreen
+          ? "h-full w-full"
+          : "hidden shrink-0 border-l border-[#E6E1D3] xl:flex"
+      } ${isResizing ? "select-none" : ""}`}
     >
-      <div
-        onPointerDown={handlePointerDown}
-        onDoubleClick={handleToggleExpand}
-        className={`group absolute left-0 top-0 z-50 h-full w-2 -translate-x-1/2 cursor-col-resize touch-none ${
-          isResizing ? "bg-[#BD7B24]/20" : ""
-        }`}
-        title="Drag to resize · Double-click to expand"
-      >
+      {!fullscreen && (
         <div
-          className={`absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full transition ${
-            isResizing
-              ? "bg-[#BD7B24]"
-              : "bg-transparent group-hover:bg-[#D8D2C3]"
+          onPointerDown={handlePointerDown}
+          onDoubleClick={handleToggleExpand}
+          className={`group absolute left-0 top-0 z-50 h-full w-2 -translate-x-1/2 cursor-col-resize touch-none ${
+            isResizing ? "bg-[#BD7B24]/20" : ""
           }`}
-        />
-      </div>
+          title="Drag to resize · Double-click to expand"
+        >
+          <div
+            className={`absolute left-1/2 top-1/2 h-12 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full transition ${
+              isResizing
+                ? "bg-[#BD7B24]"
+                : "bg-transparent group-hover:bg-[#D8D2C3]"
+            }`}
+          />
+        </div>
+      )}
 
       <header className="flex h-[62px] shrink-0 items-center gap-3 border-b border-[#E6E1D3] px-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#F3EFE4] text-[#BD7B24]">
@@ -128,19 +155,25 @@ function DocumentPreview({ document, onClose, seekTime }) {
         </div>
 
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={handleToggleExpand}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-[#8A8473] transition hover:bg-[#F7F4EC] hover:text-[#22201A]"
-            aria-label={isExpanded ? "Collapse preview" : "Expand preview"}
-            title={isExpanded ? "Collapse preview" : "Expand preview"}
-          >
-            {isExpanded ? (
-              <Minimize2 size={14} strokeWidth={1.8} />
-            ) : (
-              <Maximize2 size={14} strokeWidth={1.8} />
-            )}
-          </button>
+          {!fullscreen && (
+            <button
+              type="button"
+              onClick={handleToggleExpand}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[#8A8473] transition hover:bg-[#F7F4EC] hover:text-[#22201A]"
+              aria-label={
+                isExpanded ? "Collapse preview" : "Expand preview"
+              }
+              title={
+                isExpanded ? "Collapse preview" : "Expand preview"
+              }
+            >
+              {isExpanded ? (
+                <Minimize2 size={14} strokeWidth={1.8} />
+              ) : (
+                <Maximize2 size={14} strokeWidth={1.8} />
+              )}
+            </button>
+          )}
 
           <button
             type="button"
@@ -156,11 +189,17 @@ function DocumentPreview({ document, onClose, seekTime }) {
 
       <div className="min-h-0 flex-1 overflow-hidden bg-[#F0EDE4]">
         {isPdf ? (
-          <PdfPreview document={document} />
+          <PdfPreview
+            document={document}
+            page={page}
+          />
         ) : isWeb ? (
           <WebPreview document={document} />
         ) : isVideo ? (
-          <VideoPreview document={document} seekTime={seekTime} />
+          <VideoPreview
+            document={document}
+            seekTime={seekTime}
+          />
         ) : (
           <div className="flex h-full items-center justify-center px-8 text-center">
             <div>

@@ -85,6 +85,10 @@ const documentSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    savedToLibrary: {
+      type: Boolean,
+      default: true, // main Documents-page uploads stay visible by default
+    },
   },
   {
     timestamps: true,

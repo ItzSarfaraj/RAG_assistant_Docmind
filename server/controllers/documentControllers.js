@@ -24,6 +24,13 @@ const uploadDocument = async (req, res) => {
       });
     }
 
+    // Multer puts non-file form fields on req.body alongside the file.
+    // Default to true so existing callers that don't send this field
+    // (e.g. the main Documents-page uploader) keep today's behavior.
+    // The Search-page uploader explicitly sends "false" to index a
+    // document for the session without adding it to the library.
+    const saveToLibrary = req.body.saveToLibrary !== "false";
+
     const document = await Document.create({
       user: req.user.id,
 
@@ -40,6 +47,8 @@ const uploadDocument = async (req, res) => {
       fileSize: req.file.size,
 
       status: "pending",
+
+      savedToLibrary: saveToLibrary,
     });
 
     // ==========================================
@@ -82,6 +91,8 @@ const uploadDocument = async (req, res) => {
           status: document.status,
           chunkCount: document.chunkCount,
 
+          savedToLibrary: document.savedToLibrary,
+
           createdAt: document.createdAt,
 
           // Browser-accessible URL
@@ -109,6 +120,7 @@ const uploadDocument = async (req, res) => {
           name: document.name,
           status: document.status,
           errorMessage: document.errorMessage,
+          savedToLibrary: document.savedToLibrary,
 
           url: `/uploads/${path.basename(document.filePath)}`,
         },
@@ -129,10 +141,18 @@ const uploadDocument = async (req, res) => {
 // ==========================================
 // GET DOCUMENTS
 // ==========================================
+// Only returns documents the user has actually saved to their library.
+// Session-only documents (savedToLibrary: false, e.g. from the Search
+// page) stay indexed/searchable but don't clutter this list. Legacy
+// documents with no savedToLibrary field (created before this change)
+// are treated as saved, via the $ne: false filter.
 
 const getDocuments = async (req, res) => {
   try {
-    const documents = await Document.find({ user: req.user.id })
+    const documents = await Document.find({
+      user: req.user.id,
+      savedToLibrary: { $ne: false },
+    })
       .populate("folder", "name color")
       .sort({ createdAt: -1 });
 
@@ -188,7 +208,7 @@ const deleteDocument = async (req, res) => {
 
 const updateDocument = async (req, res) => {
   try {
-    const { folder, progress, name } = req.body;
+    const { folder, progress, name, savedToLibrary } = req.body;
 
     const document = await Document.findOne({ _id: req.params.id, user: req.user.id });
 
@@ -211,6 +231,13 @@ const updateDocument = async (req, res) => {
       document.progress = Math.max(0, Math.min(100, Number(progress) || 0));
     }
 
+    // Lets the frontend explicitly "save" a session-only document
+    // (e.g. the Search page's "Save to my documents" button) by
+    // flipping savedToLibrary to true.
+    if (savedToLibrary !== undefined) {
+      document.savedToLibrary = Boolean(savedToLibrary);
+    }
+
     await document.save();
     await document.populate("folder", "name color");
 
@@ -226,4 +253,4 @@ const updateDocument = async (req, res) => {
   }
 };
 
-export { uploadDocument, getDocuments, deleteDocument,updateDocument };
+export { uploadDocument, getDocuments, deleteDocument, updateDocument };

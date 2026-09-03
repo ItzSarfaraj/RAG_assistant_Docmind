@@ -142,4 +142,14 @@ const streamNotes = async ({
   return finalPayload;
 };
 
-export { indexDocument, askQuestion, streamQuestion, generateNotes, streamNotes };
+const searchDocuments = async ({ query, documentIds, k = 10 }) => {
+  const response = await ragClient.post("/search", {
+    query,
+    document_ids: documentIds,
+    k,
+  });
+
+  return response.data;
+};
+
+export { indexDocument, askQuestion, streamQuestion, generateNotes, streamNotes,searchDocuments };

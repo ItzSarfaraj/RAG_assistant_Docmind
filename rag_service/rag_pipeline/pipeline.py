@@ -193,3 +193,36 @@ async def astream_video_notes(
             break
 
     await task
+
+def search_documents(query: str, document_ids: list[str], k: int = 10):
+    if not query.strip():
+        raise ValueError("Search query cannot be empty.")
+
+    if not document_ids:
+        return []
+
+    results = []
+
+    for document_id in document_ids:
+        try:
+            document_results = retrieve_documents(
+                question=query,
+                document_id=document_id,
+                k=k,
+            )
+        except FileNotFoundError:
+            continue
+
+        for document, score in document_results:
+            results.append(
+                {
+                    "document_id": document_id,
+                    "content": document.page_content,
+                    "metadata": document.metadata or {},
+                    "score": float(score),
+                }
+            )
+
+    results.sort(key=lambda item: item["score"])
+
+    return results[:k]    

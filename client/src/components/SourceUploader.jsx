@@ -15,7 +15,10 @@ import { uploadDocument } from "../services/documentService";
 import WebSource from "./WebSource";
 import VideoSource from "./VideoSource";
 
-function SourceUploader({ onUploaded }) {
+// `compact` drops the page-level heading and outer padding so this can be
+// embedded inside another card (e.g. the Search page's "Add to your
+// research" panel) without stacking two headings or doubling the padding.
+function SourceUploader({ onUploaded, compact = false }) {
   const [mode, setMode] = useState("file");
   const [file, setFile] = useState(null);
   const [dragging, setDragging] = useState(false);
@@ -113,27 +116,41 @@ function SourceUploader({ onUploaded }) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-12">
-      <div className="mb-8 text-center">
-        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-[#E6E1D3] bg-white text-[#BD7B24] shadow-sm">
-          <Upload size={18} strokeWidth={1.8} />
+    <div
+      className={
+        compact
+          ? "mx-auto w-full"
+          : "mx-auto w-full max-w-4xl px-5 py-8 sm:px-8 sm:py-12"
+      }
+    >
+      {!compact && (
+        <div className="mb-8 text-center">
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl border border-[#E6E1D3] bg-white text-[#BD7B24] shadow-sm">
+            <Upload size={18} strokeWidth={1.8} />
+          </div>
+
+          <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#BD7B24]">
+            New source
+          </p>
+
+          <h1 className="mt-1.5 font-[Fraunces] text-2xl font-medium tracking-tight text-[#22201A] sm:text-[27px]">
+            What do you want to research?
+          </h1>
+
+          <p className="mx-auto mt-2 max-w-lg text-xs leading-5 text-[#8A8473]">
+            Add a document, webpage, or video and turn it into an intelligent
+            knowledge source.
+          </p>
         </div>
+      )}
 
-        <p className="mt-5 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#BD7B24]">
-          New source
-        </p>
-
-        <h1 className="mt-1.5 font-[Fraunces] text-2xl font-medium tracking-tight text-[#22201A] sm:text-[27px]">
-          What do you want to research?
-        </h1>
-
-        <p className="mx-auto mt-2 max-w-lg text-xs leading-5 text-[#8A8473]">
-          Add a document, webpage, or video and turn it into an intelligent
-          knowledge source.
-        </p>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-[#E6E1D3] bg-white p-2 shadow-sm">
+      <div
+        className={
+          compact
+            ? "overflow-hidden rounded-xl border border-[#E6E1D3] bg-white p-2"
+            : "overflow-hidden rounded-2xl border border-[#E6E1D3] bg-white p-2 shadow-sm"
+        }
+      >
         <div className="grid grid-cols-3 gap-1 rounded-xl bg-[#F3EFE4] p-1">
           {sourceTabs.map(({ id, label, icon: Icon }) => {
             const active = mode === id;
@@ -165,7 +182,9 @@ function SourceUploader({ onUploaded }) {
               }}
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
-              className={`mt-2 rounded-xl border-2 border-dashed px-5 py-12 text-center transition ${
+              className={`mt-2 rounded-xl border-2 border-dashed text-center transition ${
+                compact ? "px-4 py-8" : "px-5 py-12"
+              } ${
                 dragging
                   ? "border-[#BD7B24] bg-[#F7F1E5]"
                   : "border-[#E6E1D3] hover:border-[#D4C5AA] hover:bg-[#FDFBF7]"
@@ -274,29 +293,31 @@ function SourceUploader({ onUploaded }) {
         )}
       </div>
 
-      <div className="mt-7 text-center">
-        <p className="mb-3 text-[9px] font-semibold tracking-[0.18em] text-[#A09A8B]">
-          SUPPORTED SOURCES
-        </p>
+      {!compact && (
+        <div className="mt-7 text-center">
+          <p className="mb-3 text-[9px] font-semibold tracking-[0.18em] text-[#A09A8B]">
+            SUPPORTED SOURCES
+          </p>
 
-        <div className="flex flex-wrap justify-center gap-2">
-          {[
-            [FileText, "PDF"],
-            [FileType, "DOCX"],
-            [FileText, "TXT"],
-            [Link, "Web"],
-            [Video, "Video URL"],
-          ].map(([Icon, label]) => (
-            <span
-              key={label}
-              className="flex items-center gap-1.5 rounded-full border border-[#E6E1D3] bg-white px-3 py-1.5 text-[10px] text-[#8A8473]"
-            >
-              <Icon size={11} />
-              {label}
-            </span>
-          ))}
+          <div className="flex flex-wrap justify-center gap-2">
+            {[
+              [FileText, "PDF"],
+              [FileType, "DOCX"],
+              [FileText, "TXT"],
+              [Link, "Web"],
+              [Video, "Video URL"],
+            ].map(([Icon, label]) => (
+              <span
+                key={label}
+                className="flex items-center gap-1.5 rounded-full border border-[#E6E1D3] bg-white px-3 py-1.5 text-[10px] text-[#8A8473]"
+              >
+                <Icon size={11} />
+                {label}
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import webRoutes from "./routes/webRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
 import folderRoutes from "./routes/folderRoutes.js"
 import flashcardRoutes from "./routes/flashCradRoutes.js";
+import searchRoutes from "./routes/searchRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -59,8 +60,9 @@ app.use("/api/notes", noteRoutes);
 
 app.use("/api/folders", folderRoutes);
 
-//flashcards routes
 app.use("/api/flashcards", flashcardRoutes);
+
+app.use("/api/search", searchRoutes);
 
 // Health Check
 

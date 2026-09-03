@@ -16,7 +16,8 @@ from rag_pipeline.pipeline import (
     astream_answer,
     generate_video_notes,
     astream_video_notes,
-    _build_notes_context
+    _build_notes_context,
+    search_documents
 )
 from config import logger
 from generation.flashcards import generate_flashcards
@@ -101,7 +102,12 @@ class NotesRequest(BaseModel):
 
 class FlashcardRequest(BaseModel):
     document_ids: list[str]
-    count: int = 15    
+    count: int = 15  
+
+class SearchRequest(BaseModel):
+    query: str
+    document_ids: list[str]
+    k: int = 10      
 
 
 # ============================================================
@@ -268,3 +274,24 @@ async def generate_flashcards_endpoint(request: FlashcardRequest):
     except Exception:
         logger.exception("Flashcard generation failed")
         raise HTTPException(status_code=500, detail="Flashcard generation failed.")
+
+@app.post("/search")
+def search_endpoint(request: SearchRequest):
+    try:
+        results = search_documents(
+            query=request.query,
+            document_ids=request.document_ids,
+            k=request.k,
+        )
+
+        return {"results": results}
+
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+    except Exception:
+        logger.exception("Search failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Search failed. Please try again.",
+        )    
