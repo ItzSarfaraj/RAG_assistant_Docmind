@@ -10,6 +10,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  RotateCcw,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
@@ -34,7 +35,7 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
       title: "Tools",
       items: [
         { to: "/search", label: "Search", icon: Search },
-        { to: "/ai-tools", label: "AI Tools", icon: Sparkles },
+        { to: "/study-cards", label: "Study Cards", icon: RotateCcw },
       ],
     },
   ];
@@ -42,7 +43,10 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={onClose} />
+        <div
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+          onClick={onClose}
+        />
       )}
 
       <aside
@@ -63,7 +67,9 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
             {!collapsed && (
               <div>
                 <p className="font-[Fraunces] text-sm leading-none">DocMind</p>
-                <p className="mt-1 text-[9px] text-[#F3EFE4]/35">Research workspace</p>
+                <p className="mt-1 text-[9px] text-[#F3EFE4]/35">
+                  Research workspace
+                </p>
               </div>
             )}
           </div>
@@ -161,7 +167,11 @@ function AppSidebar({ open, onClose, collapsed, onToggleCollapse }) {
             }`}
             title={collapsed ? "Show sidebar" : "Hide sidebar"}
           >
-            {collapsed ? <PanelLeftOpen size={15} strokeWidth={1.8} /> : <PanelLeftClose size={15} strokeWidth={1.8} />}
+            {collapsed ? (
+              <PanelLeftOpen size={15} strokeWidth={1.8} />
+            ) : (
+              <PanelLeftClose size={15} strokeWidth={1.8} />
+            )}
             {!collapsed && "Hide sidebar"}
           </button>
         </div>

@@ -15,9 +15,12 @@ from rag_pipeline.pipeline import (
     ask_question,
     astream_answer,
     generate_video_notes,
-    astream_video_notes,   # new
+    astream_video_notes,
+    _build_notes_context
 )
 from config import logger
+from generation.flashcards import generate_flashcards
+ 
 
 
 app = FastAPI(
@@ -76,7 +79,7 @@ class NoteInclude(BaseModel):
 
 
 class NotesRequest(BaseModel):
-    document_id: str
+    document_id: list[str]
     detail_level: str = "detailed"
     explanation_level: str = "intermediate"
     note_structure: str = "structured"
@@ -96,14 +99,9 @@ class NotesRequest(BaseModel):
 
         return value
 
-
-# ============================================================
-# Health
-# ============================================================
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok", "message": "DocMind RAG service is running"}
+class FlashcardRequest(BaseModel):
+    document_ids: list[str]
+    count: int = 15    
 
 
 # ============================================================
@@ -258,3 +256,15 @@ def generate_notes_stream_endpoint(request: NotesRequest):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
     )
+
+@app.post("/flashcards/generate")
+async def generate_flashcards_endpoint(request: FlashcardRequest):
+    try:
+        context, _ = _build_notes_context(request.document_ids)
+        cards = await generate_flashcards(context, count=request.count)
+        return {"cards": cards}
+    except (ValueError, FileNotFoundError) as error:
+        raise HTTPException(status_code=400, detail=str(error))
+    except Exception:
+        logger.exception("Flashcard generation failed")
+        raise HTTPException(status_code=500, detail="Flashcard generation failed.")

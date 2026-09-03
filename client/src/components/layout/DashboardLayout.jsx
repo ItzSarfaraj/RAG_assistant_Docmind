@@ -1,5 +1,5 @@
 import { Menu } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import AppSidebar from "./AppSidebar";
@@ -8,32 +8,34 @@ import Header from "../Header";
 function DashboardLayout({ user, onLogout, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
+  const userOverrode = useRef(false);
   const location = useLocation();
 
   useEffect(() => {
-    if (
-      location.pathname === "/notes" ||
-      location.pathname.startsWith("/notes/")
-    ) {
-      setSidebarCollapsed(true);
-    } else {
-      setSidebarCollapsed(false);
+    if (userOverrode.current) {
+      userOverrode.current = false;
+      return;
     }
+    setSidebarCollapsed(
+      location.pathname === "/notes" || location.pathname.startsWith("/notes/"),
+    );
   }, [location.pathname]);
 
+  const handleToggleCollapse = () => {
+    userOverrode.current = true;
+    setSidebarCollapsed((value) => !value);
+  };
+
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F7F4EC] text-[#22201A]">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#F7F4EC] text-[#22201A]">
       <AppSidebar
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
-        onToggleCollapse={() =>
-          setSidebarCollapsed((value) => !value)
-        }
+        onToggleCollapse={handleToggleCollapse}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex h-12 shrink-0 items-center border-b border-[#E6E1D3] bg-white px-3 md:hidden">
           <button
             type="button"
@@ -47,9 +49,7 @@ function DashboardLayout({ user, onLogout, children }) {
 
         <Header user={user} onLogout={onLogout} />
 
-        <main className="min-h-0 flex-1 overflow-hidden">
-          {children}
-        </main>
+        <main className="min-h-0 min-w-0 flex-1 overflow-hidden">{children}</main>
       </div>
     </div>
   );

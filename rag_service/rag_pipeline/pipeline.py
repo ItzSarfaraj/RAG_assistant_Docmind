@@ -100,71 +100,41 @@ async def astream_answer(question: str, document_id: str, k: int = DEFAULT_K, ch
     yield {"type": "done"}
 
 
-def _build_notes_context(document_id: str):
-    """
-    Shared by both the blocking and streaming notes entry points.
+def _build_notes_context(document_ids: list[str]):
+    all_documents = []
 
-    Note generation should not depend on semantic top-k retrieval
-    because that can miss important sections of a long video — it
-    walks every indexed chunk instead.
-    """
-    documents = get_all_documents(document_id)
-
-    if not documents:
-        raise ValueError("No indexed content was found for this document.")
-
-    documents.sort(
-        key=lambda document: (
-            document.metadata.get("chunk_id", 0)
-            if isinstance(document.metadata.get("chunk_id", 0), int)
-            else 0
+    for document_id in document_ids:
+        documents = get_all_documents(document_id)
+        if not documents:
+            continue
+        documents.sort(
+            key=lambda d: d.metadata.get("chunk_id", 0) if isinstance(d.metadata.get("chunk_id", 0), int) else 0
         )
-    )
+        all_documents.append((document_id, documents))
+
+    if not all_documents:
+        raise ValueError("No indexed content was found for the selected sources.")
 
     context_parts = []
+    total_chunks = 0
 
-    for index, document in enumerate(documents, start=1):
-        metadata = document.metadata or {}
+    for document_id, documents in all_documents:
+        for index, document in enumerate(documents, start=1):
+            metadata = document.metadata or {}
+            timestamp = metadata.get("timestamp") or metadata.get("start_time") or metadata.get("start")
+            timestamp_text = f" [Timestamp: {timestamp}]" if timestamp is not None else ""
+            context_parts.append(
+                f"[SOURCE {document_id} — CHUNK {index}]{timestamp_text}\n{document.page_content}"
+            )
+            total_chunks += 1
 
-        timestamp = (
-            metadata.get("timestamp")
-            or metadata.get("start_time")
-            or metadata.get("start")
-        )
-        timestamp_text = f" [Timestamp: {timestamp}]" if timestamp is not None else ""
-
-        context_parts.append(
-            f"[VIDEO CHUNK {index}]{timestamp_text}\n{document.page_content}"
-        )
-
-    context = "\n\n---\n\n".join(context_parts)
-    return context, len(documents)
+    return "\n\n---\n\n".join(context_parts), total_chunks
 
 
-async def generate_video_notes(
-    document_id: str,
-    detail_level: str = "detailed",
-    explanation_level: str = "intermediate",
-    note_structure: str = "structured",
-    include: dict | None = None,
-    faithful_to_video: bool = True,
-):
-    context, chunk_count = _build_notes_context(document_id)
-
-    notes = await generate_notes(
-        context=context,
-        detail_level=detail_level,
-        explanation_level=explanation_level,
-        note_structure=note_structure,
-        include=include,
-        faithful_to_video=faithful_to_video,
-    )
-
-    return {
-        "document_id": document_id,
-        "notes": notes,
-        "chunks_processed": chunk_count,
-    }
+async def generate_video_notes(document_ids: list[str], detail_level="detailed", explanation_level="intermediate", note_structure="structured", include=None, faithful_to_video=True):
+    context, chunk_count = _build_notes_context(document_ids)
+    notes = await generate_notes(context=context, detail_level=detail_level, explanation_level=explanation_level, note_structure=note_structure, include=include, faithful_to_video=faithful_to_video)
+    return {"document_ids": document_ids, "notes": notes, "chunks_processed": chunk_count}
 
 
 async def astream_video_notes(

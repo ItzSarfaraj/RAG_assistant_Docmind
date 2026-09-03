@@ -17,6 +17,14 @@ const indexDocument = async ({ source, documentId, sourceType = "file" }) => {
   return response.data;
 };
 
+export const generateFlashcards = async ({ documentIds, count }) => {
+  const response = await axios.post(`${RAG_SERVICE_URL}/flashcards/generate`, {
+    document_ids: documentIds,
+    count,
+  });
+  return response.data; // { cards: [...] }
+};
+
 const askQuestion = async ({ question, documentId, k = 4 }) => {
   const response = await ragClient.post("/chat/answer", {
     question,

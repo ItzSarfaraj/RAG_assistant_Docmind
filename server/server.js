@@ -12,7 +12,7 @@ import chatHistoryRoutes from "./routes/chatHistoryRoutes.js";
 import webRoutes from "./routes/webRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
 import folderRoutes from "./routes/folderRoutes.js"
-
+import flashcardRoutes from "./routes/flashCradRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -58,6 +58,10 @@ app.use("/api/web", webRoutes);
 app.use("/api/notes", noteRoutes);
 
 app.use("/api/folders", folderRoutes);
+
+//flashcards routes
+app.use("/api/flashcards", flashcardRoutes);
+
 // Health Check
 
 app.get("/api/health", (req, res) => {

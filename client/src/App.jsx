@@ -11,8 +11,10 @@ import Documents from "./pages/Documents";
 import Notes from "./pages/Notes";
 import NotesPage from "./pages/NotesPage";
 import Search from "./pages/Search";
-import AITools from "./pages/AITools";
+import StudyCards from "./pages/StudyCards";
 import Settings from "./pages/Settings";
+import CreateFlashcards from "./pages/CreateFlashcards";
+import FlashcardSet from "./pages/FlashcardSet";
 
 import DashboardLayout from "./components/layout/DashboardLayout";
 
@@ -156,10 +158,28 @@ function App() {
       />
 
       <Route
-        path="/ai-tools"
+        path="/study-cards"
         element={
           <LayoutRoute>
-            <AITools />
+            <StudyCards />
+          </LayoutRoute>
+        }
+      />
+
+      <Route
+        path="/flashcards"
+        element={
+          <LayoutRoute>
+            <CreateFlashcards />
+          </LayoutRoute>
+        }
+      />
+
+      <Route
+        path="/flashcards/:setId"
+        element={
+          <LayoutRoute>
+            <FlashcardSet />
           </LayoutRoute>
         }
       />
